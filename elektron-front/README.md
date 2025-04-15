@@ -2,7 +2,9 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+1. Install the necessary dependencies by going into CLI and entering "npm install" if not done so.
+
+Then, run the development server:
 
 ```bash
 npm run dev
