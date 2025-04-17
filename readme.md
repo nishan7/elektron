@@ -13,8 +13,8 @@ A full-stack application for monitoring electricity consumption, device health, 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ElectricityApp.git
-cd ElectricityApp
+git clone https://github.com/yourusername/elektron.git
+cd elektron
 ```
 
 2. Create a `.env` file in the root directory:
