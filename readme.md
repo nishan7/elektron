@@ -104,69 +104,6 @@ git commit -m "feat: description of your changes"
 git push origin feature/your-feature-name
 ```
 
-4. Create a Pull Request:
-   - Go to GitHub repository
-   - Click "New Pull Request"
-   - Select `develop` as base branch
-   - Select your feature branch as compare branch
-   - Fill in the PR template
-
-### Commit Message Format
-
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `test`: Adding or modifying tests
-- `chore`: Maintenance tasks
-
-## Code Review Process
-
-1. All code changes must go through a Pull Request
-2. At least one reviewer must approve the changes
-3. All automated tests must pass
-4. Code must follow the project's style guide
-5. Documentation must be updated if needed
-
-## Deployment
-
-### Production Deployment
-
-1. Create a release branch:
-```bash
-git checkout develop
-git pull origin develop
-git checkout -b release/v1.x.x
-```
-
-2. Update version numbers and changelog
-3. Create a Pull Request to `main`
-4. After approval, merge to `main`
-5. Tag the release:
-```bash
-git tag -a v1.x.x -m "Release v1.x.x"
-git push origin v1.x.x
-```
-
-### Staging Deployment
-
-1. Merge `develop` into `staging`
-2. Deploy to staging environment
-3. Run integration tests
-4. If tests pass, proceed to production deployment
-
 ## Project Structure
 
 ```
