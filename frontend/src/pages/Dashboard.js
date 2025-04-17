@@ -31,6 +31,8 @@ import AlertsList from '../components/AlertsList';
 function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedDevice, setSelectedDevice] = useState('all');
+  const [devices, setDevices] = useState([]);
   const [dashboardData, setDashboardData] = useState({
     totalDevices: 0,
     activeDevices: 0,
@@ -45,6 +47,7 @@ function Dashboard() {
         setLoading(true);
         // Fetch devices
         const devicesResponse = await axios.get(`${config.apiUrl}/api/devices`);
+        setDevices(devicesResponse.data);
         const activeDevices = devicesResponse.data.filter(device => device.is_active);
         
         // Fetch power readings for each device
@@ -100,6 +103,11 @@ function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleDeviceChange = (deviceId) => {
+    console.log('Device changed in Dashboard:', deviceId);
+    setSelectedDevice(deviceId);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -147,7 +155,11 @@ function Dashboard() {
           <Card>
             <CardHeader title="Power Consumption" />
             <CardContent>
-              <PowerConsumptionChart useSampleData={config.useSampleData} />
+              <PowerConsumptionChart 
+                useSampleData={config.useSampleData} 
+                selectedDevice={selectedDevice}
+                onDeviceChange={handleDeviceChange}
+              />
             </CardContent>
           </Card>
         </Grid>

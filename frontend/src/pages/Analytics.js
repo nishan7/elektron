@@ -33,7 +33,7 @@ function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [devices, setDevices] = useState([]);
-  const [selectedDevice, setSelectedDevice] = useState('');
+  const [selectedDevice, setSelectedDevice] = useState('all');
   const [tabValue, setTabValue] = useState(0);
   const [useSampleData, setUseSampleData] = useState(false);
 
@@ -46,18 +46,12 @@ function Analytics() {
       setLoading(true);
       const response = await axios.get(`${config.apiUrl}/api/devices`);
       setDevices(response.data);
-      if (response.data.length > 0) {
-        setSelectedDevice(response.data[0].id);
-      }
       setUseSampleData(false);
       setLoading(false);
     } catch (err) {
       console.error('Failed to load devices:', err);
       // Use sample data when API fails
       setDevices(sampleDevices);
-      if (sampleDevices.length > 0) {
-        setSelectedDevice(sampleDevices[0].id);
-      }
       setUseSampleData(true);
       setLoading(false);
     }
@@ -103,6 +97,7 @@ function Analytics() {
                 onChange={handleDeviceChange}
                 label="Select Device"
               >
+                <MenuItem value="all">All Devices</MenuItem>
                 {devices.map((device) => (
                   <MenuItem key={device.id} value={device.id}>
                     {device.name}

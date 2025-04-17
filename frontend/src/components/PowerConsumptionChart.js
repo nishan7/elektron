@@ -27,9 +27,9 @@ import axios from 'axios';
 import config from '../config';
 
 // Sample data generator functions
-const generateHourlyData = () => {
+const generateHourlyData = (deviceId = 'all') => {
   const data = [];
-  const baseLoad = 2000; // Base load in watts
+  const baseLoad = deviceId === 'all' ? 2000 : 1000; // Base load in watts
   const peakHours = [8, 9, 10, 17, 18, 19]; // Peak usage hours
 
   for (let hour = 0; hour < 24; hour++) {
@@ -37,13 +37,13 @@ const generateHourlyData = () => {
     
     // Add peak load during peak hours
     if (peakHours.includes(hour)) {
-      load += Math.random() * 3000 + 1000;
+      load += Math.random() * (deviceId === 'all' ? 3000 : 1500) + (deviceId === 'all' ? 1000 : 500);
     } else {
-      load += Math.random() * 1000;
+      load += Math.random() * (deviceId === 'all' ? 1000 : 500);
     }
 
     // Add some randomness
-    load += (Math.random() - 0.5) * 500;
+    load += (Math.random() - 0.5) * (deviceId === 'all' ? 500 : 250);
 
     data.push({
       hour: `${hour}:00`,
@@ -54,9 +54,9 @@ const generateHourlyData = () => {
   return data;
 };
 
-const generateDailyData = () => {
+const generateDailyData = (deviceId = 'all') => {
   const data = [];
-  const baseLoad = 1500;
+  const baseLoad = deviceId === 'all' ? 1500 : 750;
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   weekdays.forEach((day, index) => {
@@ -64,9 +64,9 @@ const generateDailyData = () => {
     
     // Higher consumption on weekdays
     if (index < 5) {
-      load += Math.random() * 2000 + 1000;
+      load += Math.random() * (deviceId === 'all' ? 2000 : 1000) + (deviceId === 'all' ? 1000 : 500);
     } else {
-      load += Math.random() * 1000;
+      load += Math.random() * (deviceId === 'all' ? 1000 : 500);
     }
 
     data.push({
@@ -78,9 +78,9 @@ const generateDailyData = () => {
   return data;
 };
 
-const generateMonthlyData = () => {
+const generateMonthlyData = (deviceId = 'all') => {
   const data = [];
-  const baseLoad = 2000;
+  const baseLoad = deviceId === 'all' ? 2000 : 1000;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   months.forEach((month, index) => {
@@ -88,11 +88,11 @@ const generateMonthlyData = () => {
     
     // Higher consumption in summer and winter months
     if (index >= 5 && index <= 8) { // Summer months
-      load += Math.random() * 3000 + 2000;
+      load += Math.random() * (deviceId === 'all' ? 3000 : 1500) + (deviceId === 'all' ? 2000 : 1000);
     } else if (index >= 11 || index <= 1) { // Winter months
-      load += Math.random() * 2500 + 1500;
+      load += Math.random() * (deviceId === 'all' ? 2500 : 1250) + (deviceId === 'all' ? 1500 : 750);
     } else {
-      load += Math.random() * 1500;
+      load += Math.random() * (deviceId === 'all' ? 1500 : 750);
     }
 
     data.push({
@@ -113,27 +113,33 @@ const sampleDevices = [
   { id: '5', name: 'Office Equipment', type: 'equipment', status: 'active' },
 ];
 
-function PowerConsumptionChart({ useSampleData = false }) {
+function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', onDeviceChange, deviceId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('hourly');
   const [data, setData] = useState([]);
   const [devices, setDevices] = useState([]);
-  const [selectedDevice, setSelectedDevice] = useState('all');
+  const [currentDevice, setCurrentDevice] = useState(deviceId || selectedDevice);
 
-  const fetchDevices = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/devices`);
-      setDevices(response.data);
-    } catch (error) {
-      console.error('Error fetching devices:', error);
-      setError('Failed to fetch devices');
-      setDevices(sampleDevices);
-    } finally {
-      setLoading(false);
+  const fetchSampleData = useCallback(() => {
+    setLoading(true);
+    let sampleData;
+    switch (timeRange) {
+      case 'hourly':
+        sampleData = generateHourlyData(currentDevice);
+        break;
+      case 'daily':
+        sampleData = generateDailyData(currentDevice);
+        break;
+      case 'monthly':
+        sampleData = generateMonthlyData(currentDevice);
+        break;
+      default:
+        sampleData = generateHourlyData(currentDevice);
     }
-  };
+    setData(sampleData);
+    setLoading(false);
+  }, [timeRange, currentDevice]);
 
   const fetchData = useCallback(async () => {
     if (useSampleData) {
@@ -165,10 +171,10 @@ function PowerConsumptionChart({ useSampleData = false }) {
       console.log('Time Range:', timeRange);
       console.log('Start Time:', startTime.toISOString());
       console.log('End Time:', endTime.toISOString());
-      console.log('Selected Device:', selectedDevice);
+      console.log('Selected Device:', currentDevice);
 
       let readings = [];
-      if (selectedDevice === 'all') {
+      if (currentDevice === 'all') {
         // Fetch readings for all devices
         const devicesResponse = await axios.get(`${config.apiUrl}/api/devices`);
         const activeDevices = devicesResponse.data.filter(device => device.is_active);
@@ -188,8 +194,8 @@ function PowerConsumptionChart({ useSampleData = false }) {
         readings = powerReadingsResponses.flatMap(response => response.data);
       } else {
         // Fetch readings for a specific device
-        console.log('Fetching readings for device:', selectedDevice);
-        const response = await axios.get(`${config.apiUrl}/api/devices/${selectedDevice}/readings`, {
+        console.log('Fetching readings for device:', currentDevice);
+        const response = await axios.get(`${config.apiUrl}/api/devices/${currentDevice}/readings`, {
           params: {
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString()
@@ -214,20 +220,33 @@ function PowerConsumptionChart({ useSampleData = false }) {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, selectedDevice, useSampleData]);
+  }, [timeRange, currentDevice, useSampleData, fetchSampleData]);
 
+  // Update currentDevice when deviceId or selectedDevice prop changes
+  useEffect(() => {
+    console.log('Device changed:', deviceId || selectedDevice);
+    setCurrentDevice(deviceId || selectedDevice);
+    if (!useSampleData) {
+      fetchData();
+    }
+  }, [deviceId, selectedDevice]);
+
+  // Fetch devices on component mount
   useEffect(() => {
     fetchDevices();
   }, []);
 
+  // Fetch data when timeRange, currentDevice, or useSampleData changes
   useEffect(() => {
+    console.log('Fetching data for device:', currentDevice);
     if (useSampleData) {
       fetchSampleData();
     } else {
       fetchData();
     }
-  }, [timeRange, selectedDevice, useSampleData, fetchData]);
+  }, [timeRange, currentDevice, useSampleData, fetchData]);
 
+  // Set up refresh interval
   useEffect(() => {
     const interval = setInterval(() => {
       if (!useSampleData) {
@@ -238,24 +257,18 @@ function PowerConsumptionChart({ useSampleData = false }) {
     return () => clearInterval(interval);
   }, [useSampleData, fetchData]);
 
-  const fetchSampleData = () => {
-    setLoading(true);
-    let sampleData;
-    switch (timeRange) {
-      case 'hourly':
-        sampleData = generateHourlyData();
-        break;
-      case 'daily':
-        sampleData = generateDailyData();
-        break;
-      case 'monthly':
-        sampleData = generateMonthlyData();
-        break;
-      default:
-        sampleData = generateHourlyData();
+  const fetchDevices = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${config.apiUrl}/api/devices`);
+      setDevices(response.data);
+    } catch (error) {
+      console.error('Error fetching devices:', error);
+      setError('Failed to fetch devices');
+      setDevices(sampleDevices);
+    } finally {
+      setLoading(false);
     }
-    setData(sampleData);
-    setLoading(false);
   };
 
   const handleTimeRangeChange = (event, newValue) => {
@@ -265,7 +278,11 @@ function PowerConsumptionChart({ useSampleData = false }) {
   };
 
   const handleDeviceChange = (event) => {
-    setSelectedDevice(event.target.value);
+    const newDevice = event.target.value;
+    setCurrentDevice(newDevice);
+    if (onDeviceChange) {
+      onDeviceChange(newDevice);
+    }
   };
 
   const getXAxisDataKey = () => {
@@ -286,7 +303,9 @@ function PowerConsumptionChart({ useSampleData = false }) {
       return [];
     }
 
+    const RATE_PER_KWH = 0.15; // $0.15 per kWh
     const data = [];
+
     switch (timeRange) {
       case 'hourly':
         // Group by hour
@@ -297,19 +316,24 @@ function PowerConsumptionChart({ useSampleData = false }) {
             hourlyData[hour] = {
               hour: `${hour}:00`,
               consumption: 0,
-              count: 0
+              count: 0,
+              totalEnergy: 0 // Watt-hours
             };
           }
           hourlyData[hour].consumption += reading.power;
           hourlyData[hour].count += 1;
+          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
+          hourlyData[hour].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
         });
 
         // Calculate averages and format data
         Object.values(hourlyData).forEach(hour => {
+          const avgConsumption = Math.round(hour.consumption / hour.count);
+          const energyKWh = hour.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
           data.push({
             hour: hour.hour,
-            consumption: Math.round(hour.consumption / hour.count),
-            cost: Math.round((hour.consumption / hour.count / 1000) * 0.15) // $0.15 per kWh
+            consumption: avgConsumption,
+            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the hour
           });
         });
         break;
@@ -323,19 +347,24 @@ function PowerConsumptionChart({ useSampleData = false }) {
             dailyData[day] = {
               day,
               consumption: 0,
-              count: 0
+              count: 0,
+              totalEnergy: 0 // Watt-hours
             };
           }
           dailyData[day].consumption += reading.power;
           dailyData[day].count += 1;
+          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
+          dailyData[day].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
         });
 
         // Calculate averages and format data
         Object.values(dailyData).forEach(day => {
+          const avgConsumption = Math.round(day.consumption / day.count);
+          const energyKWh = day.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
           data.push({
             day: day.day,
-            consumption: Math.round(day.consumption / day.count),
-            cost: Math.round((day.consumption / day.count / 1000) * 0.15 * 24) // Daily cost
+            consumption: avgConsumption,
+            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the day
           });
         });
         break;
@@ -349,19 +378,24 @@ function PowerConsumptionChart({ useSampleData = false }) {
             monthlyData[month] = {
               month,
               consumption: 0,
-              count: 0
+              count: 0,
+              totalEnergy: 0 // Watt-hours
             };
           }
           monthlyData[month].consumption += reading.power;
           monthlyData[month].count += 1;
+          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
+          monthlyData[month].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
         });
 
         // Calculate averages and format data
         Object.values(monthlyData).forEach(month => {
+          const avgConsumption = Math.round(month.consumption / month.count);
+          const energyKWh = month.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
           data.push({
             month: month.month,
-            consumption: Math.round(month.consumption / month.count),
-            cost: Math.round((month.consumption / month.count / 1000) * 0.15 * 24 * 30) // Monthly cost
+            consumption: avgConsumption,
+            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the month
           });
         });
         break;
@@ -397,21 +431,23 @@ function PowerConsumptionChart({ useSampleData = false }) {
           Power Consumption
         </Typography>
         <Box display="flex" gap={2}>
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Device</InputLabel>
-            <Select
-              value={selectedDevice}
-              label="Device"
-              onChange={handleDeviceChange}
-            >
-              <MenuItem value="all">All Devices</MenuItem>
-              {devices.map((device) => (
-                <MenuItem key={device.id} value={device.id}>
-                  {device.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {!deviceId && (
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Device</InputLabel>
+              <Select
+                value={currentDevice}
+                label="Device"
+                onChange={handleDeviceChange}
+              >
+                <MenuItem value="all">All Devices</MenuItem>
+                {devices.map((device) => (
+                  <MenuItem key={device.id} value={device.id}>
+                    {device.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
           <ToggleButtonGroup
             value={timeRange}
             exclusive

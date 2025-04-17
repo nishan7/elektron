@@ -13,13 +13,14 @@ import {
   Snackbar,
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
+import { useTheme } from '../context/ThemeContext';
 
 function Settings() {
+  const { darkMode, toggleDarkMode } = useTheme();
   const [settings, setSettings] = useState({
     emailNotifications: true,
     alertThreshold: 80,
     refreshInterval: 30,
-    darkMode: false,
   });
 
   const [snackbar, setSnackbar] = useState({
@@ -114,8 +115,8 @@ function Settings() {
             <FormControlLabel
               control={
                 <Switch
-                  checked={settings.darkMode}
-                  onChange={handleChange}
+                  checked={darkMode}
+                  onChange={toggleDarkMode}
                   name="darkMode"
                 />
               }
