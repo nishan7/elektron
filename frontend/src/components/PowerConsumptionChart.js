@@ -176,13 +176,13 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
       let readings = [];
       if (currentDevice === 'all') {
         // Fetch readings for all devices
-        const devicesResponse = await axios.get(`${config.apiUrl}/api/devices`);
+        const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
         const activeDevices = devicesResponse.data.filter(device => device.is_active);
         
         console.log('Active Devices:', activeDevices);
         
         const powerReadingsPromises = activeDevices.map(device =>
-          axios.get(`${config.apiUrl}/api/devices/${device.id}/readings`, {
+          axios.get(`${config.apiUrl}/api/record/data?device_id=${device._id}`, {
             params: {
               start_time: startTime.toISOString(),
               end_time: endTime.toISOString()
@@ -195,7 +195,7 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
       } else {
         // Fetch readings for a specific device
         console.log('Fetching readings for device:', currentDevice);
-        const response = await axios.get(`${config.apiUrl}/api/devices/${currentDevice}/readings`, {
+        const response = await axios.get(`${config.apiUrl}/api/device/${currentDevice}/readings`, {
           params: {
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString()
@@ -260,7 +260,7 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
   const fetchDevices = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/devices`);
+      const response = await axios.get(`${config.apiUrl}/api/device`);
       setDevices(response.data);
     } catch (error) {
       console.error('Error fetching devices:', error);
@@ -441,7 +441,7 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
               >
                 <MenuItem value="all">All Devices</MenuItem>
                 {devices.map((device) => (
-                  <MenuItem key={device.id} value={device.id}>
+                  <MenuItem key={device._id} value={device._id}>
                     {device.name}
                   </MenuItem>
                 ))}

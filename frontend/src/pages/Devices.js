@@ -52,7 +52,7 @@ function DevicesPage() {
   const fetchDevices = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/devices`);
+      const response = await axios.get(`${config.apiUrl}/api/device`);
       setDevices(response.data);
       setLoading(false);
     } catch (err) {
@@ -75,7 +75,7 @@ function DevicesPage() {
 
   const handleAddSubmit = async () => {
     try {
-      const response = await axios.post(`${config.apiUrl}/api/devices`, newDevice);
+      const response = await axios.post(`${config.apiUrl}/api/device`, newDevice);
       setDevices([...devices, response.data]);
       setAddDialogOpen(false);
       setNewDevice({
@@ -93,13 +93,13 @@ function DevicesPage() {
 
   const handleDeviceUpdated = (updatedDevice) => {
     setDevices(devices.map(device => 
-      device.id === updatedDevice.id ? updatedDevice : device
+      device._id === updatedDevice.id ? updatedDevice : device
     ));
     setSelectedDevice(null);
   };
 
   const handleDeviceDeleted = (deviceId) => {
-    setDevices(devices.filter(device => device.id !== deviceId));
+    setDevices(devices.filter(device => device._id !== deviceId));
     setSelectedDevice(null);
   };
 
@@ -162,7 +162,7 @@ function DevicesPage() {
 
       <Grid container spacing={3}>
         {devices.map((device) => (
-          <Grid item xs={12} md={6} lg={4} key={device.id}>
+          <Grid item xs={12} md={6} lg={4} key={device._id}>
             <Card>
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>

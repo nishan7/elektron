@@ -88,7 +88,7 @@ function DeviceAnalytics({ deviceId, useSampleData = false }) {
 
   const fetchDevice = async () => {
     try {
-      const response = await axios.get(`/api/devices/${deviceId}`);
+      const response = await axios.get(`/api/device/${deviceId}`);
       setDevice(response.data);
     } catch (err) {
       console.error('Failed to load device:', err);
@@ -108,7 +108,7 @@ function DeviceAnalytics({ deviceId, useSampleData = false }) {
       setLoading(true);
       
       // In a real application, these would be API calls
-      // const response = await axios.get(`/api/devices/${deviceId}/analytics?range=${timeRange}`);
+      // const response = await axios.get(`/api/device/${deviceId}/analytics?range=${timeRange}`);
       // setDeviceData(response.data.measurements);
       // setLoadDistribution(response.data.loadDistribution);
       

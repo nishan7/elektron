@@ -56,12 +56,12 @@ const AlertsList = () => {
       try {
         setLoading(true);
         // First get all devices
-        const devicesResponse = await axios.get(`${config.apiUrl}/api/devices`);
+        const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
         const devices = devicesResponse.data;
         
         // Then fetch alerts for each device
         const alertsPromises = devices.map(device => 
-          axios.get(`${config.apiUrl}/api/alerts/${device.id}`, {
+          axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
             params: { resolved: false, limit: 10 }
           })
         );

@@ -23,6 +23,7 @@ class RecordsAPI(BaseCRUDAPI[Record]):
             self,
             start_time: Optional[str] = Query(None),
             end_time: Optional[str] = Query(None),
+            device_id: Optional[str] = Query(None),
     ):
         query = {}
         if start_time or end_time:
@@ -31,6 +32,8 @@ class RecordsAPI(BaseCRUDAPI[Record]):
                 query["timestamp"]["$gte"] = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
             if end_time:
                 query["timestamp"]["$lte"] = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+            if device_id:
+                query["device_id"] = ObjectId(device_id)
         cursor = self.db.db[self.collection_name].find(query)
         return [self.model(**doc) async for doc in cursor]
 

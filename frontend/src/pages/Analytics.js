@@ -44,7 +44,7 @@ function Analytics() {
   const fetchDevices = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/devices`);
+      const response = await axios.get(`${config.apiUrl}/api/device`);
       setDevices(response.data);
       setUseSampleData(false);
       setLoading(false);
@@ -99,7 +99,7 @@ function Analytics() {
               >
                 <MenuItem value="all">All Devices</MenuItem>
                 {devices.map((device) => (
-                  <MenuItem key={device.id} value={device.id}>
+                  <MenuItem key={device._id} value={device._id}>
                     {device.name}
                   </MenuItem>
                 ))}

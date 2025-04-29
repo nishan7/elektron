@@ -29,10 +29,12 @@ GET http://localhost:8000/api/record
 Content-Type: application/json
 
 ### Get records within a time frame
-GET http://localhost:8000/api/record/data?start_time=2025-04-27T00:00:00Z&end_time=2025-04-29T23:59:59Z
+GET http://localhost:8000/api/record/data?start_time=2025-04-27T00:00:00Z&end_time=2025-04-29T23:59:59Z&device_id=681012976bb14e7b76a00631
 Content-Type: application/json
 
-
+### Get records within a time frame (demo)
+GET http://localhost:8000/api/record/data?start_time=2025-04-26T02:23:56.444Z&end_time=2025-04-30T02:23:56.444Z&device_id=681012976bb14e7b76a00631
+Content-Type: application/json
 
 
 ### update a job

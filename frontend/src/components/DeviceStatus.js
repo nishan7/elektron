@@ -29,7 +29,7 @@ function DeviceStatus() {
     const fetchDevices = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${config.apiUrl}/api/devices`);
+        const response = await axios.get(`${config.apiUrl}/api/device`);
         setDevices(response.data);
       } catch (error) {
         console.error('Error fetching devices:', error);
@@ -95,7 +95,7 @@ function DeviceStatus() {
       <List>
         {devices.map((device) => (
           <ListItem
-            key={device.id}
+            key={device._id}
             divider
             sx={{
               backgroundColor: device.health?.health_status === 'critical' ? 'error.light' : 'inherit',

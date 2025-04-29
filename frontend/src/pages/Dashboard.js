@@ -46,8 +46,9 @@ function Dashboard() {
       try {
         setLoading(true);
         // Fetch devices
-        const devicesResponse = await axios.get(`${config.apiUrl}/api/devices`);
+        const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
         setDevices(devicesResponse.data);
+        console.log('Devices:', devicesResponse.data);
         const activeDevices = devicesResponse.data.filter(device => device.is_active);
         
         // Fetch power readings for each device
@@ -55,7 +56,7 @@ function Dashboard() {
         const startTime = new Date(endTime - 24 * 60 * 60 * 1000);
         
         const powerReadingsPromises = activeDevices.map(device =>
-          axios.get(`${config.apiUrl}/api/devices/${device.id}/readings`, {
+          axios.get(`${config.apiUrl}/api/record/data/?device_id=${device._id}`, {
             params: {
               start_time: startTime.toISOString(),
               end_time: endTime.toISOString(),
@@ -68,7 +69,7 @@ function Dashboard() {
         
         // Fetch alerts for each device
         const alertsPromises = activeDevices.map(device =>
-          axios.get(`${config.apiUrl}/api/alerts/${device.id}`, {
+          axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
             params: { resolved: false, limit: 5 }
           })
         );

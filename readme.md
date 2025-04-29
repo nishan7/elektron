@@ -1,5 +1,4 @@
 # Electricity Monitor Application
-
 A full-stack application for monitoring electricity consumption, device health, and generating alerts.
 
 ## How to Run

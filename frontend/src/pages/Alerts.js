@@ -53,12 +53,12 @@ function AlertsPage() {
     setLoading(true);
     try {
       // First get all devices
-      const devicesResponse = await axios.get(`${config.apiUrl}/api/devices`);
+      const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
       const devices = devicesResponse.data;
 
       // Then fetch alerts for each device
       const alertPromises = devices.map(device =>
-        axios.get(`${config.apiUrl}/api/alerts/${device.id}`, {
+        axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
           params: {
             resolved: filters.resolved,
             severity: filters.severity,
@@ -86,7 +86,7 @@ function AlertsPage() {
 
   const fetchDevices = async () => {
     try {
-      const response = await axios.get(`${config.apiUrl}/api/devices`);
+      const response = await axios.get(`${config.apiUrl}/api/device`);
       setDevices(response.data);
     } catch (err) {
       console.error('Failed to load devices:', err);
@@ -217,7 +217,7 @@ function AlertsPage() {
             >
               <MenuItem value="all">All Devices</MenuItem>
               {devices.map((device) => (
-                <MenuItem key={device.id} value={device.id}>
+                <MenuItem key={device._id} value={device._id}>
                   {device.name}
                 </MenuItem>
               ))}
