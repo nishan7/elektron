@@ -3,8 +3,8 @@ from tapo import ApiClient
 
 
 async def main():
-    client = ApiClient("nishan.paudel1914@gmail.com", "")
-    device = await client.p115("172.20.10.6")
+    client = ApiClient("ganeshthampi4@gmail.com", "Nintendo456..")
+    device = await client.p115("10.251.152.242")
 
     # await device.on()  # Turns the plug ON
     # await device.off()  # Turns the plug OFF

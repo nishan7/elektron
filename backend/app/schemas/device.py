@@ -1,3 +1,4 @@
+#   elektron/backend/app/schemas/device.py
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
@@ -22,23 +23,7 @@ class DeviceResponse(DeviceBase):
     class Config:
         orm_mode = True
 
-class PowerReadingBase(BaseModel):
-    voltage: float = Field(..., description="Voltage in volts")
-    current: float = Field(..., description="Current in amperes")
-    power: float = Field(..., description="Power in watts")
-    energy: float = Field(..., description="Energy in kilowatt-hours")
-    power_factor: Optional[float] = Field(None, description="Power factor")
-
-class PowerReadingCreate(PowerReadingBase):
-    pass
-
-class PowerReadingResponse(PowerReadingBase):
-    id: int
-    device_id: int
-    timestamp: datetime
-
-    class Config:
-        orm_mode = True
+#   Removed: PowerReadingBase, PowerReadingCreate, PowerReadingResponse
 
 class DeviceHealthBase(BaseModel):
     temperature: float = Field(..., description="Temperature in celsius")
@@ -55,7 +40,9 @@ class DeviceHealthResponse(DeviceHealthBase):
         orm_mode = True
 
 class AlertBase(BaseModel):
-    alert_type: str = Field(..., description="Type of alert: power_spike, voltage_fluctuation, device_failure, etc.")
+    alert_type: str = Field(
+        ..., description="Type of alert: power_spike, voltage_fluctuation, device_failure, etc."
+    )
     severity: str = Field(..., description="Alert severity: info, warning, critical")
     message: str
     is_resolved: bool = False
@@ -70,4 +57,4 @@ class AlertResponse(AlertBase):
     resolved_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True 
+        orm_mode = True
