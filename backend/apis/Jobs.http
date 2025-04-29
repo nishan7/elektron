@@ -1,0 +1,155 @@
+
+### Get all devices
+GET http://localhost:8000/api/device
+Content-Type: application/json
+
+### Get a devices
+GET http://localhost:8000/api/device/681014201fc0e40d08a3dfb5
+Content-Type: application/json
+
+### Create a Device
+POST http://localhost:8000/api/device
+Content-Type: application/json
+
+{
+  "name": "Smart Thermostat22",
+  "device_type": "Thermostat",
+  "location": "Living Room",
+  "model": "T1000",
+  "manufacturer": "SmartHome Inc.",
+  "firmware_version": "1.2.3",
+  "is_active": true,
+  "created_at": "2023-10-01T12:00:00Z",
+  "updated_at": "2023-10-10T15:30:00Z"
+}
+
+
+
+
+### update a job
+PUT http://localhost:8000/api/device/681014201fc0e40d08a3dfb5
+Content-Type: application/json
+
+{
+    "name": "Smart Thermostat88",
+    "device_type": "Thermostat",
+    "location": "Living Room",
+    "model": "T1000",
+    "manufacturer": "SmartHome Inc.",
+    "firmware_version": "1.2.3",
+    "is_active": true,
+    "created_at": "2023-10-01T12:00:00",
+    "updated_at": "2023-10-10T15:30:00"
+}
+
+###
+
+### Get all gig jobs
+GET http://localhost:8000/api/gig
+Content-Type: application/json
+
+###
+
+### Create a new gig job
+POST http://ec2-54-89-21-90.compute-1.amazonaws.com:8000/api/gig
+Content-Type: application/json
+
+{
+  "title": "Freelance Writer",
+  "description": "Write articles for blogs.",
+  "location": "Remote",
+  "points": 50,
+  "is_active": true,
+  "duration": "2 weeks",
+  "pay": 500,
+  "organization": "Content Creators Inc.",
+  "skills": [
+    "Writing",
+    "SEO"
+  ]
+}
+
+###
+
+### Get all volunteer jobs
+GET http://localhost:8000/api/volunteer
+Content-Type: application/json
+
+###
+
+### Create a new volunteer job
+POST http://localhost:8000/api/volunteer
+Content-Type: application/json
+
+{
+  "title": "Community Helper",
+  "description": "Assist in community events.",
+  "location": "Local",
+  "points": 20,
+  "is_active": true,
+  "pay": 120000,
+  "organization": "Local Community Center",
+  "skills": [
+    "Event Management",
+    "Communication"
+  ]
+}
+
+
+### Create a new application
+POST http://localhost:8000/api/application
+Content-Type: application/json
+
+{
+  "job_id": "680d9b50de670faf3e8cf6a7",
+  "applicant": "680d9b50de670faf3e8cf6a7",
+  "poster": "680d9b50de670faf3e8cf6a7"
+}
+
+
+
+### get all  applications
+GET http://localhost:8000/api/application
+Content-Type: application/json
+
+
+
+### get all  applications
+GET http://localhost:8000/api/application/?poster=680d9b50de670faf3e8cf6a7
+Content-Type: application/json
+
+
+
+### get one  applications
+GET http://localhost:8000/api/application/680dba881e930fe215d6a3ff
+Content-Type: application/json
+
+
+### accpet  application
+PATCH http://localhost:8000/api/application/680dba881e930fe215d6a3ff/accept
+Content-Type: application/json
+
+
+### reject  application
+PATCH http://localhost:8000/api/application/680dba881e930fe215d6a3ff/reject
+Content-Type: application/json
+
+
+### reject  application
+GET http://localhost:8000/api/user/680e523e959200839d95d748
+Content-Type: application/json
+
+### reject  application
+GET http://localhost:8000/api/user
+Content-Type: application/json
+
+
+###   google auth
+
+POST http://localhost:8000/auth/google/login
+Content-Type: application/json
+
+{"credential": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjIzZjdhMzU4Mzc5NmY5NzEyOWU1NDE4ZjliMjEzNmZjYzBhOTY0NjIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiIxMDI2NTgxNjkzNzA5LWdubDNhcWQyOGpzc2tibDRkb3ZjbjNuY2FlanJmMG9oLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwiYXVkIjoiMTAyNjU4MTY5MzcwOS1nbmwzYXFkMjhqc3NrYmw0ZG92Y24zbmNhZWpyZjBvaC5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjExODIzMTQxOTIxNTk5MzU3NDQzNiIsImVtYWlsIjoibmlzaGFuLnBhdWRlbDE5MTRAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5iZiI6MTc0NTc0NDI2MiwibmFtZSI6Ik5pc2hhbiBQYXVkZWwiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSVZndkhQcXNIZGdpSGpNN1VfNmo3d1BabC11YjRENFRvVlJQWGRsQWl1bXNPaG5MV1E9czk2LWMiLCJnaXZlbl9uYW1lIjoiTmlzaGFuIiwiZmFtaWx5X25hbWUiOiJQYXVkZWwiLCJpYXQiOjE3NDU3NDQ1NjIsImV4cCI6MTc0NTc0ODE2MiwianRpIjoiMGU4YTNhNDkxOWEzYzI1MWMxZTgwMDc2M2IzMTYyNWJlODczMDYyNyJ9.Lb_-iERQ6eNv6QcCH0p9-1JFo4nodvyrzwIDRBU3eFlXD0OVplS91NDdA3VwYEeZ9WutUl3oHx_u9hijCs6GTeD48xMeqOzymAb7zp3AaPbsmBV7RXdbbn1ba1ajPDUuZ1kBRMho3ZY7HrkTqVwBnmr-AZW-NsycHAFSgBbEgJsWdAzOKcmunbNwC1nfwG7t5kn6vABNQtrZfUde3Fq0I9xAfQaUPf-bDzrJPyL0hZ1o3QCVwnKYr8frNT1A4XzfkEY_FNlOn3uO1KqTm_nykJluaIegln4jgvW6uXQeRzKbi1Cx3zOPqeW3odpTJhB1jGgatyzSygjOpbk6xSEi5Q"
+}
+
+
