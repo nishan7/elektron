@@ -28,16 +28,16 @@ class BaseCRUDAPI(Generic[T]):
         self.model = model
         self.collection_name = collection_name
         self.router = APIRouter()
-        # self.router = APIRouter(dependencies=[Depends(get_current_user)])
         self.db = db
+        self.setup_routes()
 
-        # self.router.get("/", response_model=PaginatedResponse)(self.get_all)
-        self.router.get("/", response_model=List[self.model])(self.get_all)
+    def setup_routes(self):
         self.router.get("/{item_id}", response_model=self.model)(self.get_one)
+        self.router.get("/", response_model=List[self.model])(self.get_all)
         self.router.post("/", response_model=self.model)(self.create)
         self.router.put("/{item_id}", response_model=self.model)(self.put)
-        self.router.patch("/{item_id}", response_model=self.model)(self.patch)
         self.router.delete("/{item_id}")(self.delete)
+
 
     async def get_one(self, item_id: str, kwargs: Optional[dict] = {}):
         document = await self.db.db[self.collection_name].find_one({"_id": ObjectId(item_id), **kwargs})

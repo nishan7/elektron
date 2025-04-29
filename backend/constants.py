@@ -1,0 +1,2 @@
+DEVICE_COLLECTION_NAME = "devices"
+RECORD_COLLECTION_NAME = "records"

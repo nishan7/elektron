@@ -4,7 +4,7 @@ from typing import Optional
 from bson import ObjectId
 from pydantic import Field
 from pydantic_mongo import PydanticObjectId
-
+from pydantic import Field, validator
 from models.base import Base
 
 
@@ -18,6 +18,12 @@ class Device(Base):
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+
+class Record(Base):
+    device_id: PydanticObjectId
+    power: float
+    timestamp: datetime
+
 
 
     # class Config:
