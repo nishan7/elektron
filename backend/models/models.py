@@ -18,12 +18,19 @@ class Device(Base):
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+    max: Optional[float] = None
 
 class Record(Base):
     device_id: PydanticObjectId
     power: float
     timestamp: datetime
 
+class Alert(Base):
+    device_id: PydanticObjectId
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    reason: str
+    metric: str
 
 
     # class Config:

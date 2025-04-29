@@ -23,6 +23,14 @@ Content-Type: application/json
   "updated_at": "2023-10-10T15:30:00Z"
 }
 
+### Update a Device
+PATCH http://localhost:8000/api/device/681014201fc0e40d08a3dfb5
+Content-Type: application/json
+
+{
+"max": 44
+}
+
 
 ### GET all
 GET http://localhost:8000/api/record

@@ -36,6 +36,7 @@ class BaseCRUDAPI(Generic[T]):
         self.router.get("/", response_model=List[self.model])(self.get_all)
         self.router.post("/", response_model=self.model)(self.create)
         self.router.put("/{item_id}", response_model=self.model)(self.put)
+        self.router.patch("/{item_id}", response_model=self.model)(self.patch)
         self.router.delete("/{item_id}")(self.delete)
 
 
