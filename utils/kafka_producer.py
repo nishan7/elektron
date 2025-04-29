@@ -25,7 +25,7 @@ def run_producer():
                 energy = round(random.uniform(0.1, 5.0), 2)
                 power_factor = round(random.uniform(0.85, 1.0), 2)
 
-                reading = {}
+
                 reading = create_power_reading(
                     device_id=device_id,
                     voltage=voltage,

@@ -1,59 +1,51 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_client import make_asgi_app
-import uvicorn
+from contextlib import asynccontextmanager
 
-from app.core.database import engine, Base, SessionLocal
-from app.api.endpoints import devices, analytics, alerts
-from app.core.init_db import init_db
+from api.device import DeviceAPI
+from core.database import db
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
 
-# Initialize database with sample data
-db = SessionLocal()
-try:
-    init_db(db)
-finally:
-    db.close()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    await db.connect_to_database()
+    yield
+    # Shutdown logic
+    await db.close_database_connection()
+
 
 app = FastAPI(
-    title="Smart Electricity Monitoring System",
-    description="API for monitoring and analyzing electricity consumption",
-    version="1.0.0"
+    title="Bridge Works API",
+    description="API documentation for managing jobs, gigs, and volunteers.",
+    version="1.0.0",
+    docs_url="/docs",  # Swagger UI endpoint
+    redoc_url="/redoc",  # ReDoc endpoint
+    openapi_url="/openapi.json",  # OpenAPI schema endpoint
+    lifespan=lifespan,  # Use async context manager for startup/shutdown
 )
 
-# CORS middleware configuration
+# Middleware for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Prometheus metrics
-metrics_app = make_asgi_app()
-app.mount("/metrics", metrics_app)
+# from api.auth.oauth import router as oauth_router
 
 # Include routers
-app.include_router(devices.router, prefix="/api/devices", tags=["devices"])
-app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
-app.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
+device_api = DeviceAPI()
+# gig_api = GigJobAPI()
+# volunteer_api = VolunteerJobAPI()
+# application_api = ApplicationAPI()
+# user_api = UserAPI()
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Welcome to Smart Electricity Monitoring System API",
-        "status": "operational"
-    }
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "version": "1.0.0"
-    }
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
+# app.include_router(oauth_router)
+app.include_router(device_api.router, prefix="/api/device", tags=["Device"])
+# app.include_router(gig_api.router, prefix="/api/gig", tags=["Gigs"])
+# app.include_router(volunteer_api.router, prefix="/api/volunteer", tags=["Volunteers"])
+# app.include_router(application_api.router, prefix="/api/application", tags=["Application"])
+# app.include_router(user_api.router, prefix="/api/user", tags=["User"])
