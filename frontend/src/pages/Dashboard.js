@@ -68,25 +68,25 @@ function Dashboard() {
         const allPowerReadings = powerReadingsResponses.flatMap(response => response.data);
         
         // Fetch alerts for each device
-        const alertsPromises = activeDevices.map(device =>
-          axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
-            params: { resolved: false, limit: 5 }
-          })
-        );
+        // const alertsPromises = activeDevices.map(device =>
+        //   axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
+        //     params: { resolved: false, limit: 5 }
+        //   })
+        // );
         
-        const alertsResponses = await Promise.all(alertsPromises);
-        const allAlerts = alertsResponses.flatMap(response => response.data);
+        // const alertsResponses = await Promise.all(alertsPromises);
+        // const allAlerts = alertsResponses.flatMap(response => response.data);
         
-        // Sort alerts by timestamp
-        const sortedAlerts = allAlerts.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
+        // // Sort alerts by timestamp
+        // const sortedAlerts = allAlerts.sort((a, b) => 
+        //   new Date(b.timestamp) - new Date(a.timestamp)
+        // );
         
         setDashboardData({
           totalDevices: devicesResponse.data.length,
           activeDevices: activeDevices.length,
           totalPower: allPowerReadings.reduce((sum, reading) => sum + reading.power, 0),
-          recentAlerts: sortedAlerts.slice(0, 5),
+          // recentAlerts: sortedAlerts.slice(0, 5),
           powerReadings: allPowerReadings,
         });
         

@@ -184,8 +184,8 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
         const powerReadingsPromises = activeDevices.map(device =>
           axios.get(`${config.apiUrl}/api/record/data?device_id=${device._id}`, {
             params: {
-              start_time: startTime.toISOString(),
-              end_time: endTime.toISOString()
+              // start_time: startTime.toISOString(),
+              // end_time: endTime.toISOString()
             }
           })
         );
@@ -195,10 +195,10 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
       } else {
         // Fetch readings for a specific device
         console.log('Fetching readings for device:', currentDevice);
-        const response = await axios.get(`${config.apiUrl}/api/device/${currentDevice}/readings`, {
+        const response = await axios.get(`${config.apiUrl}/api/record/data?device_id=${currentDevice}`, {
           params: {
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString()
+            // start_time: startTime.toISOString(),
+            // end_time: endTime.toISOString()
           }
         });
         readings = response.data;
