@@ -45,6 +45,13 @@ GET http://localhost:8000/api/record/data?start_time=2025-04-26T02:23:56.444Z&en
 Content-Type: application/json
 
 
+
+
+
+
+
+
+
 ### update a job
 PUT http://localhost:8000/api/device/681014201fc0e40d08a3dfb5
 Content-Type: application/json
