@@ -6,7 +6,8 @@ class Database:
     db = None
 
     async def connect_to_database(self):
-        mongo_uri = os.getenv("MONGO_URI", "mongodb://root:example@localhost:27017/elektron?authSource=admin")
+        #mongo_uri = os.getenv("MONGO_URI", "mongodb://root:example@localhost:27017/elektron?authSource=admin")
+        mongo_uri = os.getenv("MONGO_URI", "mongodb://root:example@mongo:27017/elektron?authSource=admin")
         self.client = AsyncIOMotorClient(mongo_uri)
         self.db = self.client.get_database()
 
