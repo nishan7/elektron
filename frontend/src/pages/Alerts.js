@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
-  Alert,
-  Grid,
   Paper,
   Tabs,
   Tab,
@@ -13,7 +10,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -24,19 +20,69 @@ import {
   Error as ErrorIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
-import config from '../config';
 
 // Components
-import RecentAlerts from '../components/RecentAlerts';
+import AlertsList from '../components/AlertsList';
+
+// Sample data
+const sampleDevices = [
+  { id: '1', name: 'Main Panel', type: 'panel', status: 'active' },
+  { id: '2', name: 'HVAC System', type: 'hvac', status: 'active' },
+  { id: '3', name: 'Lighting Circuit', type: 'lighting', status: 'active' },
+  { id: '4', name: 'Kitchen Appliances', type: 'appliance', status: 'active' },
+  { id: '5', name: 'Office Equipment', type: 'equipment', status: 'active' },
+];
+
+const sampleAlerts = [
+  {
+    id: '1',
+    deviceId: '2',
+    deviceName: 'HVAC System',
+    type: 'warning',
+    message: 'High temperature detected in server room',
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+    resolved: false,
+  },
+  {
+    id: '2',
+    deviceId: '5',
+    deviceName: 'Office Equipment',
+    type: 'critical',
+    message: 'Power consumption exceeded threshold',
+    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
+    resolved: false,
+  },
+  {
+    id: '3',
+    deviceId: '1',
+    deviceName: 'Main Panel',
+    type: 'info',
+    message: 'System check completed successfully',
+    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+    resolved: true,
+  },
+  {
+    id: '4',
+    deviceId: '3',
+    deviceName: 'Lighting Circuit',
+    type: 'warning',
+    message: 'Unusual power consumption pattern detected',
+    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 minutes ago
+    resolved: false,
+  },
+  {
+    id: '5',
+    deviceId: '4',
+    deviceName: 'Kitchen Appliances',
+    type: 'info',
+    message: 'Regular maintenance check completed',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
+    resolved: true,
+  },
+];
 
 function AlertsPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [alerts, setAlerts] = useState([]);
   const [tabValue, setTabValue] = useState(0);
-  const [devices, setDevices] = useState([]);
-  const [selectedDevice, setSelectedDevice] = useState('');
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [filters, setFilters] = useState({
     severity: 'all',
@@ -44,54 +90,12 @@ function AlertsPage() {
     resolved: false,
   });
 
-  useEffect(() => {
-    fetchAlerts();
-    fetchDevices();
-  }, [filters]);
-
-  const fetchAlerts = async () => {
-    setLoading(true);
-    try {
-      // First get all devices
-      const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
-      const devices = devicesResponse.data;
-
-      // Then fetch alerts for each device
-      const alertPromises = devices.map(device =>
-        axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
-          params: {
-            resolved: filters.resolved,
-            severity: filters.severity,
-            limit: 100
-          }
-        })
-      );
-
-      const alertResponses = await Promise.all(alertPromises);
-      const allAlerts = alertResponses.flatMap(response => response.data);
-      
-      // Sort alerts by timestamp
-      const sortedAlerts = allAlerts.sort((a, b) => 
-        new Date(b.timestamp) - new Date(a.timestamp)
-      );
-
-      setAlerts(sortedAlerts);
-    } catch (error) {
-      console.error('Error fetching alerts:', error);
-      setError('Failed to fetch alerts');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchDevices = async () => {
-    try {
-      const response = await axios.get(`${config.apiUrl}/api/device`);
-      setDevices(response.data);
-    } catch (err) {
-      console.error('Failed to load devices:', err);
-    }
-  };
+  const filteredAlerts = sampleAlerts.filter(alert => {
+    const matchesSeverity = filters.severity === 'all' || alert.type === filters.severity;
+    const matchesDevice = filters.device === 'all' || alert.deviceId === filters.device;
+    const matchesResolved = alert.resolved === filters.resolved;
+    return matchesSeverity && matchesDevice && matchesResolved;
+  });
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -119,44 +123,7 @@ function AlertsPage() {
 
   const handleFilterSubmit = () => {
     setFilterDialogOpen(false);
-    fetchAlerts();
   };
-
-  const handleResolveAlert = async (alertId) => {
-    try {
-      await axios.put(`${config.apiUrl}/api/alerts/${alertId}/resolve`);
-      fetchAlerts();
-    } catch (err) {
-      setError('Failed to resolve alert');
-    }
-  };
-
-  const getSeverityIcon = (severity) => {
-    switch (severity.toLowerCase()) {
-      case 'critical':
-        return <ErrorIcon color="error" />;
-      case 'warning':
-        return <WarningIcon color="warning" />;
-      default:
-        return <CheckCircleIcon color="info" />;
-    }
-  };
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {error}
-      </Alert>
-    );
-  }
 
   return (
     <Box>
@@ -185,7 +152,7 @@ function AlertsPage() {
             </Button>
           </Box>
 
-          <RecentAlerts />
+          <AlertsList alerts={filteredAlerts} />
         </Box>
       </Paper>
 
@@ -216,8 +183,8 @@ function AlertsPage() {
               label="Device"
             >
               <MenuItem value="all">All Devices</MenuItem>
-              {devices.map((device) => (
-                <MenuItem key={device._id} value={device._id}>
+              {sampleDevices.map((device) => (
+                <MenuItem key={device.id} value={device.id}>
                   {device.name}
                 </MenuItem>
               ))}
