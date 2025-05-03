@@ -7,8 +7,11 @@ import random
 
 from confluent_kafka import Producer
 
+KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'readings')
 KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9092')
-KAFKA_TOPIC = 'readings'
+
+
+
 DEVICE_IDS = ["smart-meter-001", "smart-plug-002", "smart-meter-003"]  # Example device IDs
 import socket
 

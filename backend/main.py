@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from api.alerts import AlertsAPI
 from api.device import DeviceAPI
 from api.records import RecordsAPI
 from core.database import db
@@ -40,15 +41,11 @@ app.add_middleware(
 # Include routers
 device_api = DeviceAPI()
 record_api = RecordsAPI()
-# gig_api = GigJobAPI()
-# volunteer_api = VolunteerJobAPI()
-# application_api = ApplicationAPI()
-# user_api = UserAPI()
+alerts_api = AlertsAPI()
+
 
 # app.include_router(oauth_router)
 app.include_router(device_api.router, prefix="/api/device", tags=["Device"])
 app.include_router(record_api.router, prefix="/api/record", tags=["Record"])
-# app.include_router(gig_api.router, prefix="/api/gig", tags=["Gigs"])
-# app.include_router(volunteer_api.router, prefix="/api/volunteer", tags=["Volunteers"])
-# app.include_router(application_api.router, prefix="/api/application", tags=["Application"])
-# app.include_router(user_api.router, prefix="/api/user", tags=["User"])
+app.include_router(alerts_api.router, prefix="/api/alert", tags=["Alert"])
+

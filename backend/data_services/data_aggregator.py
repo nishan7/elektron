@@ -6,7 +6,7 @@ from confluent_kafka import Consumer, KafkaError
 
 from services.records import update_record
 
-KAFKA_TOPIC = 'readings'
+KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'readings')
 KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9092')
 # Kafka configuration
 conf = {
@@ -18,6 +18,7 @@ conf = {
 consumer = Consumer(conf)
 consumer.subscribe(['readings'])
 user_action_counts = {}
+
 
 def consume_messages():
     try:
@@ -43,7 +44,7 @@ def consume_messages():
     except KeyboardInterrupt:
         pass
     except RuntimeError as e:
-            pass
+        pass
     finally:
         # Close the consumer
         consumer.close()
