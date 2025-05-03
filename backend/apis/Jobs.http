@@ -24,6 +24,15 @@ Content-Type: application/json
 }
 
 
+### Update a Device
+PATCH http://localhost:8000/api/device/681014201fc0e40d08a3dfb5
+Content-Type: application/json
+
+{
+"max": 44
+}
+
+
 ### GET all
 GET http://localhost:8000/api/record
 Content-Type: application/json
@@ -35,6 +44,13 @@ Content-Type: application/json
 ### Get records within a time frame (demo)
 GET http://localhost:8000/api/record/data?start_time=2025-04-26T02:23:56.444Z&end_time=2025-04-30T02:23:56.444Z&device_id=681012976bb14e7b76a00631
 Content-Type: application/json
+
+
+
+
+
+
+
 
 
 ### update a job
@@ -55,9 +71,19 @@ Content-Type: application/json
 
 ###
 
+
+
+
 ### Get all gig jobs
-GET http://localhost:8000/api/gig
+GET http://localhost:8000/api/alert/
 Content-Type: application/json
+
+
+
+
+
+
+
 
 ###
 
@@ -79,6 +105,11 @@ Content-Type: application/json
     "SEO"
   ]
 }
+
+
+
+
+
 
 ###
 

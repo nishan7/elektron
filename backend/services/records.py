@@ -3,6 +3,7 @@ from datetime import datetime
 from constants import DEVICE_COLLECTION_NAME, RECORD_COLLECTION_NAME
 from core.sync_database import db
 from models.models import Record  # Adjust import path if necessary
+from services.device import validate_device_data
 
 
 def update_record(data: dict):
@@ -11,6 +12,9 @@ def update_record(data: dict):
     if not device:
         raise ValueError(f"Device with id {validated_data.device_id} does not exist")
     db[RECORD_COLLECTION_NAME].insert_one(validated_data.model_dump(by_alias=True))
+    validate_device_data(device, validated_data)
+
+
 
 
 from datetime import datetime, timedelta, date
