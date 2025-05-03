@@ -24,7 +24,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import axios from 'axios';
+import AlertsList from './AlertsList';
 
 // Sample data generator functions
 const generateDeviceData = () => {
@@ -48,11 +48,33 @@ const generateDeviceData = () => {
 
 const generateLoadDistribution = () => {
   return [
+    { name: 'HVAC', value: 45 },
     { name: 'Lighting', value: 25 },
-    { name: 'HVAC', value: 35 },
     { name: 'Appliances', value: 20 },
-    { name: 'Electronics', value: 15 },
-    { name: 'Other', value: 5 },
+    { name: 'Other', value: 10 },
+  ];
+};
+
+const generateDeviceAlerts = () => {
+  return [
+    {
+      id: '1',
+      type: 'warning',
+      message: 'Temperature approaching threshold',
+      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    },
+    {
+      id: '2',
+      type: 'critical',
+      message: 'Power consumption spike detected',
+      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    },
+    {
+      id: '3',
+      type: 'info',
+      message: 'Regular maintenance check completed',
+      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    },
   ];
 };
 
@@ -68,60 +90,22 @@ const sampleDevice = {
   lastUpdated: new Date().toISOString(),
 };
 
-function DeviceAnalytics({ deviceId, useSampleData = false }) {
-  const [loading, setLoading] = useState(true);
+function DeviceAnalytics({ deviceId }) {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [device, setDevice] = useState(null);
+  const [device, setDevice] = useState(sampleDevice);
   const [timeRange, setTimeRange] = useState('24h');
   const [deviceData, setDeviceData] = useState([]);
   const [loadDistribution, setLoadDistribution] = useState([]);
+  const [deviceAlerts, setDeviceAlerts] = useState([]);
 
   useEffect(() => {
-    if (useSampleData) {
-      setDevice(sampleDevice);
-      fetchSampleData();
-    } else {
-      fetchDevice();
-      fetchData();
-    }
-  }, [deviceId, timeRange, useSampleData]);
-
-  const fetchDevice = async () => {
-    try {
-      const response = await axios.get(`/api/device/${deviceId}`);
-      setDevice(response.data);
-    } catch (err) {
-      console.error('Failed to load device:', err);
-      setDevice(sampleDevice);
-    }
-  };
-
-  const fetchSampleData = () => {
     setLoading(true);
     setDeviceData(generateDeviceData());
     setLoadDistribution(generateLoadDistribution());
+    setDeviceAlerts(generateDeviceAlerts());
     setLoading(false);
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // In a real application, these would be API calls
-      // const response = await axios.get(`/api/device/${deviceId}/analytics?range=${timeRange}`);
-      // setDeviceData(response.data.measurements);
-      // setLoadDistribution(response.data.loadDistribution);
-      
-      // For now, we'll use our sample data
-      setDeviceData(generateDeviceData());
-      setLoadDistribution(generateLoadDistribution());
-      
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load device analytics data');
-      setLoading(false);
-    }
-  };
+  }, [timeRange]);
 
   const handleTimeRangeChange = (event, newValue) => {
     if (newValue !== null) {
@@ -149,7 +133,7 @@ function DeviceAnalytics({ deviceId, useSampleData = false }) {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h6">
-          Device Analytics: {device?.name}
+          Device Analytics
         </Typography>
         <ToggleButtonGroup
           value={timeRange}
@@ -157,9 +141,9 @@ function DeviceAnalytics({ deviceId, useSampleData = false }) {
           onChange={handleTimeRangeChange}
           size="small"
         >
-          <ToggleButton value="24h">24h</ToggleButton>
-          <ToggleButton value="7d">7d</ToggleButton>
-          <ToggleButton value="30d">30d</ToggleButton>
+          <ToggleButton value="24h">24 Hours</ToggleButton>
+          <ToggleButton value="7d">7 Days</ToggleButton>
+          <ToggleButton value="30d">30 Days</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -262,6 +246,15 @@ function DeviceAnalytics({ deviceId, useSampleData = false }) {
                 </BarChart>
               </ResponsiveContainer>
             </Box>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Recent Alerts
+            </Typography>
+            <AlertsList alerts={deviceAlerts} />
           </Paper>
         </Grid>
       </Grid>

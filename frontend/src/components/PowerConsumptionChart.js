@@ -23,8 +23,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import axios from 'axios';
-import config from '../config';
 
 // Sample data generator functions
 const generateHourlyData = (deviceId = 'all') => {
@@ -113,15 +111,13 @@ const sampleDevices = [
   { id: '5', name: 'Office Equipment', type: 'equipment', status: 'active' },
 ];
 
-function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', onDeviceChange, deviceId }) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceId }) {
+  const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('hourly');
   const [data, setData] = useState([]);
-  const [devices, setDevices] = useState([]);
   const [currentDevice, setCurrentDevice] = useState(deviceId || selectedDevice);
 
-  const fetchSampleData = useCallback(() => {
+  const fetchData = useCallback(() => {
     setLoading(true);
     let sampleData;
     switch (timeRange) {
@@ -141,135 +137,16 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
     setLoading(false);
   }, [timeRange, currentDevice]);
 
-  const fetchData = useCallback(async () => {
-    if (useSampleData) {
-      fetchSampleData();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const endTime = new Date();
-      const startTime = new Date();
-      
-      // Set the time range based on the selected option
-      switch (timeRange) {
-        case 'hourly':
-          startTime.setHours(startTime.getHours() - 24);
-          break;
-        case 'daily':
-          startTime.setDate(startTime.getDate() - 7);
-          break;
-        case 'monthly':
-          startTime.setMonth(startTime.getMonth() - 1);
-          break;
-        default:
-          startTime.setHours(startTime.getHours() - 24);
-      }
-
-      console.log('=== Power Consumption Chart Debug ===');
-      console.log('Time Range:', timeRange);
-      console.log('Start Time:', startTime.toISOString());
-      console.log('End Time:', endTime.toISOString());
-      console.log('Selected Device:', currentDevice);
-
-      let readings = [];
-      if (currentDevice === 'all') {
-        // Fetch readings for all devices
-        const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
-        const activeDevices = devicesResponse.data.filter(device => device.is_active);
-        
-        console.log('Active Devices:', activeDevices);
-        
-        const powerReadingsPromises = activeDevices.map(device =>
-          axios.get(`${config.apiUrl}/api/record/data?device_id=${device._id}`, {
-            params: {
-              start_time: startTime.toISOString(),
-              end_time: endTime.toISOString()
-            }
-          })
-        );
-        
-        const powerReadingsResponses = await Promise.all(powerReadingsPromises);
-        readings = powerReadingsResponses.flatMap(response => response.data);
-      } else {
-        // Fetch readings for a specific device
-        console.log('Fetching readings for device:', currentDevice);
-        const response = await axios.get(`${config.apiUrl}/api/device/${currentDevice}/readings`, {
-          params: {
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString()
-          }
-        });
-        readings = response.data;
-      }
-
-      console.log('Raw Readings:', readings);
-      console.log('Number of Readings:', readings.length);
-
-      // Process and format the readings based on time range
-      const processedData = processReadings(readings);
-      console.log('Processed Data:', processedData);
-      console.log('Number of Processed Data Points:', processedData.length);
-      
-      setData(processedData);
-    } catch (error) {
-      console.error('Error fetching power consumption data:', error);
-      setError('Failed to fetch power consumption data');
-      fetchSampleData();
-    } finally {
-      setLoading(false);
-    }
-  }, [timeRange, currentDevice, useSampleData, fetchSampleData]);
-
   // Update currentDevice when deviceId or selectedDevice prop changes
   useEffect(() => {
-    console.log('Device changed:', deviceId || selectedDevice);
     setCurrentDevice(deviceId || selectedDevice);
-    if (!useSampleData) {
-      fetchData();
-    }
-  }, [deviceId, selectedDevice]);
+    fetchData();
+  }, [deviceId, selectedDevice, fetchData]);
 
-  // Fetch devices on component mount
+  // Fetch data when timeRange or currentDevice changes
   useEffect(() => {
-    fetchDevices();
-  }, []);
-
-  // Fetch data when timeRange, currentDevice, or useSampleData changes
-  useEffect(() => {
-    console.log('Fetching data for device:', currentDevice);
-    if (useSampleData) {
-      fetchSampleData();
-    } else {
-      fetchData();
-    }
-  }, [timeRange, currentDevice, useSampleData, fetchData]);
-
-  // Set up refresh interval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!useSampleData) {
-        fetchData();
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [useSampleData, fetchData]);
-
-  const fetchDevices = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/device`);
-      setDevices(response.data);
-    } catch (error) {
-      console.error('Error fetching devices:', error);
-      setError('Failed to fetch devices');
-      setDevices(sampleDevices);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchData();
+  }, [timeRange, currentDevice, fetchData]);
 
   const handleTimeRangeChange = (event, newValue) => {
     if (newValue !== null) {
@@ -298,116 +175,6 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
     }
   };
 
-  const processReadings = (readings) => {
-    if (!readings || readings.length === 0) {
-      return [];
-    }
-
-    const RATE_PER_KWH = 0.15; // $0.15 per kWh
-    const data = [];
-
-    switch (timeRange) {
-      case 'hourly':
-        // Group by hour
-        const hourlyData = {};
-        readings.forEach(reading => {
-          const hour = new Date(reading.timestamp).getHours();
-          if (!hourlyData[hour]) {
-            hourlyData[hour] = {
-              hour: `${hour}:00`,
-              consumption: 0,
-              count: 0,
-              totalEnergy: 0 // Watt-hours
-            };
-          }
-          hourlyData[hour].consumption += reading.power;
-          hourlyData[hour].count += 1;
-          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
-          hourlyData[hour].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
-        });
-
-        // Calculate averages and format data
-        Object.values(hourlyData).forEach(hour => {
-          const avgConsumption = Math.round(hour.consumption / hour.count);
-          const energyKWh = hour.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
-          data.push({
-            hour: hour.hour,
-            consumption: avgConsumption,
-            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the hour
-          });
-        });
-        break;
-
-      case 'daily':
-        // Group by day
-        const dailyData = {};
-        readings.forEach(reading => {
-          const day = new Date(reading.timestamp).toLocaleDateString('en-US', { weekday: 'short' });
-          if (!dailyData[day]) {
-            dailyData[day] = {
-              day,
-              consumption: 0,
-              count: 0,
-              totalEnergy: 0 // Watt-hours
-            };
-          }
-          dailyData[day].consumption += reading.power;
-          dailyData[day].count += 1;
-          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
-          dailyData[day].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
-        });
-
-        // Calculate averages and format data
-        Object.values(dailyData).forEach(day => {
-          const avgConsumption = Math.round(day.consumption / day.count);
-          const energyKWh = day.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
-          data.push({
-            day: day.day,
-            consumption: avgConsumption,
-            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the day
-          });
-        });
-        break;
-
-      case 'monthly':
-        // Group by month
-        const monthlyData = {};
-        readings.forEach(reading => {
-          const month = new Date(reading.timestamp).toLocaleDateString('en-US', { month: 'short' });
-          if (!monthlyData[month]) {
-            monthlyData[month] = {
-              month,
-              consumption: 0,
-              count: 0,
-              totalEnergy: 0 // Watt-hours
-            };
-          }
-          monthlyData[month].consumption += reading.power;
-          monthlyData[month].count += 1;
-          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
-          monthlyData[month].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
-        });
-
-        // Calculate averages and format data
-        Object.values(monthlyData).forEach(month => {
-          const avgConsumption = Math.round(month.consumption / month.count);
-          const energyKWh = month.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
-          data.push({
-            month: month.month,
-            consumption: avgConsumption,
-            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the month
-          });
-        });
-        break;
-    }
-
-    return data.sort((a, b) => {
-      const timeA = a[timeRange === 'hourly' ? 'hour' : timeRange === 'daily' ? 'day' : 'month'];
-      const timeB = b[timeRange === 'hourly' ? 'hour' : timeRange === 'daily' ? 'day' : 'month'];
-      return timeA.localeCompare(timeB);
-    });
-  };
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -416,50 +183,39 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
     );
   }
 
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {error}
-      </Alert>
-    );
-  }
-
   return (
     <Paper sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6">
-          Power Consumption
-        </Typography>
-        <Box display="flex" gap={2}>
-          {!deviceId && (
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Device</InputLabel>
-              <Select
-                value={currentDevice}
-                label="Device"
-                onChange={handleDeviceChange}
-              >
-                <MenuItem value="all">All Devices</MenuItem>
-                {devices.map((device) => (
-                  <MenuItem key={device._id} value={device._id}>
-                    {device.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+      <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth>
+            <InputLabel>Device</InputLabel>
+            <Select
+              value={currentDevice}
+              onChange={handleDeviceChange}
+              label="Device"
+            >
+              <MenuItem value="all">All Devices</MenuItem>
+              {sampleDevices.map((device) => (
+                <MenuItem key={device.id} value={device.id}>
+                  {device.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} md={6}>
           <ToggleButtonGroup
             value={timeRange}
             exclusive
             onChange={handleTimeRangeChange}
-            size="small"
+            fullWidth
           >
             <ToggleButton value="hourly">Hourly</ToggleButton>
             <ToggleButton value="daily">Daily</ToggleButton>
             <ToggleButton value="monthly">Monthly</ToggleButton>
           </ToggleButtonGroup>
-        </Box>
-      </Box>
+        </Grid>
+      </Grid>
 
       <Box height={400}>
         <ResponsiveContainer width="100%" height="100%">
