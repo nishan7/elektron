@@ -1,3 +1,4 @@
+// frontend/src/components/Layout.js
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -15,6 +16,8 @@ import {
   Toolbar,
   Typography,
   useTheme,
+  Button, // Import Button for Logout
+  Stack,  // Import Stack for layout in AppBar
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -23,6 +26,7 @@ import {
   Analytics as AnalyticsIcon,
   Notifications as AlertsIcon,
   Settings as SettingsIcon,
+  Logout as LogoutIcon, // Optional: Import logout icon
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -45,6 +49,12 @@ function Layout({ children }) {
     setMobileOpen(!mobileOpen);
   };
 
+  // Logout Handler
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser'); // Clear login status from localStorage
+    navigate('/login'); // Redirect to login page
+  };
+
   const drawer = (
     <div>
       <Toolbar>
@@ -60,17 +70,32 @@ function Layout({ children }) {
               selected={location.pathname === item.path}
               onClick={() => {
                 navigate(item.path);
-                setMobileOpen(false);
+                if (mobileOpen) { // Close drawer on mobile after navigation
+                  handleDrawerToggle();
+                }
               }}
+              sx={{ py: 1.5 }} // Adjust padding if needed
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemIcon sx={{ minWidth: '40px' }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
+      <Divider />
+      {/* Optional: Logout button at the bottom of the drawer */}
+      {/* <List>
+         <ListItem disablePadding>
+            <ListItemButton onClick={handleLogout}>
+              <ListItemIcon sx={{ minWidth: '40px' }}><LogoutIcon /></ListItemIcon>
+              <ListItemText primary="Logout" />
+            </ListItemButton>
+          </ListItem>
+      </List> */}
     </div>
   );
+
+  const pageTitle = menuItems.find((item) => item.path === location.pathname)?.text || 'Electricity Monitor';
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -80,7 +105,10 @@ function Layout({ children }) {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          backgroundColor: theme.palette.background.paper, // Match theme
+          color: theme.palette.text.primary // Match theme
         }}
+        elevation={1} // Adjust elevation if needed
       >
         <Toolbar>
           <IconButton
@@ -92,15 +120,28 @@ function Layout({ children }) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            {menuItems.find((item) => item.path === location.pathname)?.text || 'Electricity Monitor'}
-          </Typography>
+          {/* Use Stack to push Logout button to the right */}
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+             <Typography variant="h6" noWrap component="div">
+                {pageTitle}
+             </Typography>
+             {/* Logout Button in AppBar */}
+             <Button
+                color="inherit"
+                onClick={handleLogout}
+                startIcon={<LogoutIcon />} // Optional icon
+              >
+                Logout
+             </Button>
+          </Stack>
         </Toolbar>
       </AppBar>
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        aria-label="mailbox folders"
       >
+        {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -131,14 +172,17 @@ function Layout({ children }) {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: '64px',
+          width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` },
+          marginTop: '64px', // Ensure content is below AppBar
+          backgroundColor: theme.palette.background.default, // Match theme background
+          minHeight: 'calc(100vh - 64px)' // Ensure content area fills height
         }}
       >
+        {/* Render the page content passed as children */}
         {children}
       </Box>
     </Box>
   );
 }
 
-export default Layout; 
+export default Layout;

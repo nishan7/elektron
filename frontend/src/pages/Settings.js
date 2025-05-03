@@ -23,7 +23,13 @@ import {
   Power as PowerIcon,
 } from '@mui/icons-material';
 
+// *** 1. Import useTheme hook ***
+import { useTheme } from '../context/ThemeContext'; 
+
 const Settings = () => {
+  // *** 2. Get theme context values ***
+  const { darkMode, toggleDarkMode } = useTheme(); 
+
   const [settings, setSettings] = useState({
     notifications: {
       email: true,
@@ -68,6 +74,31 @@ const Settings = () => {
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 3 }}>
         <Grid container spacing={3}>
+
+          {/* *** 3. Add Theme/Appearance Section (Example location) *** */}
+          <Grid item xs={12}>
+             <Box display="flex" alignItems="center" mb={2}>
+              {/* You might want a different icon here, e.g., Brightness4 */}
+              <InfoIcon color="action" sx={{ mr: 1 }} />
+              <Typography variant="h6">
+                Appearance
+              </Typography>
+            </Box>
+            <FormControlLabel
+              control={
+                <Switch 
+                  checked={darkMode}
+                  onChange={toggleDarkMode} 
+                />
+              }
+              label={darkMode ? "Dark Mode" : "Light Mode"}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Divider />
+          </Grid>
+
           {/* Notification Settings */}
           <Grid item xs={12}>
             <Box display="flex" alignItems="center" mb={2}>
@@ -248,4 +279,4 @@ const Settings = () => {
   );
 };
 
-export default Settings; 
+export default Settings;
