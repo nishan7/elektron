@@ -12,6 +12,10 @@ import {
   MenuItem,
   ToggleButtonGroup,
   ToggleButton,
+  Button,
+  ButtonGroup,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   LineChart,
@@ -22,6 +26,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 
 // Sample data generator functions
@@ -111,11 +116,37 @@ const sampleDevices = [
   { id: '5', name: 'Office Equipment', type: 'equipment', status: 'active' },
 ];
 
+// Add these utility functions after the sample data generators
+const calculateStatistics = (data) => {
+  const values = data.map(d => d.consumption);
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+  const stdDev = Math.sqrt(variance);
+  return { mean, stdDev };
+};
+
+const detectAnomalies = (data, sensitivity = 2) => {
+  const { mean, stdDev } = calculateStatistics(data);
+  return data.map(point => ({
+    ...point,
+    isAnomaly: Math.abs(point.consumption - mean) > (sensitivity * stdDev),
+    anomalyScore: Math.abs(point.consumption - mean) / stdDev,
+    expectedRange: {
+      min: mean - (sensitivity * stdDev),
+      max: mean + (sensitivity * stdDev)
+    }
+  }));
+};
+
 function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceId }) {
   const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('hourly');
   const [data, setData] = useState([]);
   const [currentDevice, setCurrentDevice] = useState(deviceId || selectedDevice);
+  const [thresholds, setThresholds] = useState({
+    warning: 80,
+    critical: 90,
+  });
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -133,7 +164,10 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
       default:
         sampleData = generateHourlyData(currentDevice);
     }
-    setData(sampleData);
+    
+    // Add anomaly detection
+    const dataWithAnomalies = detectAnomalies(sampleData);
+    setData(dataWithAnomalies);
     setLoading(false);
   }, [timeRange, currentDevice]);
 
@@ -173,6 +207,59 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
       default:
         return 'hour';
     }
+  };
+
+  const getPowerStatus = (power) => {
+    const maxPower = currentDevice ? parseInt(currentDevice.powerRating) : 1000;
+    const percentage = (power / maxPower) * 100;
+    
+    if (percentage >= thresholds.critical) {
+      return 'critical';
+    } else if (percentage >= thresholds.warning) {
+      return 'warning';
+    }
+    return 'normal';
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const point = payload[0].payload;
+      const power = point.consumption;
+      const cost = point.cost;
+      const status = getPowerStatus(power);
+      const isAnomaly = point.isAnomaly;
+      
+      return (
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle2">Time: {label}</Typography>
+            <Typography variant="body2" color={status === 'critical' ? 'error' : status === 'warning' ? 'warning' : 'textPrimary'}>
+              Power: {power} W
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Cost: ${cost.toFixed(2)}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Status: {status.toUpperCase()}
+            </Typography>
+            {isAnomaly && (
+              <>
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  ⚠️ Unusual Consumption Detected
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Expected Range: {Math.round(point.expectedRange.min)}W - {Math.round(point.expectedRange.max)}W
+                </Typography>
+                <Typography variant="caption" color="textSecondary" display="block">
+                  Anomaly Score: {point.anomalyScore.toFixed(2)}
+                </Typography>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      );
+    }
+    return null;
   };
 
   if (loading) {
@@ -217,6 +304,77 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
         </Grid>
       </Grid>
 
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6">
+          {currentDevice.name} Power Consumption
+        </Typography>
+        <ButtonGroup size="small">
+          <Button
+            variant={timeRange === 'hourly' ? 'contained' : 'outlined'}
+            onClick={() => setTimeRange('hourly')}
+          >
+            24 Hours
+          </Button>
+          <Button
+            variant={timeRange === 'daily' ? 'contained' : 'outlined'}
+            onClick={() => setTimeRange('daily')}
+          >
+            7 Days
+          </Button>
+          <Button
+            variant={timeRange === 'monthly' ? 'contained' : 'outlined'}
+            onClick={() => setTimeRange('monthly')}
+          >
+            30 Days
+          </Button>
+        </ButtonGroup>
+      </Box>
+
+      <Grid container spacing={2} mb={2}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" color="textSecondary">
+                Current Power
+              </Typography>
+              <Typography variant="h4">
+                {data[data.length - 1]?.consumption || 0} W
+              </Typography>
+              <Typography
+                variant="body2"
+                color={getPowerStatus(data[data.length - 1]?.consumption || 0) === 'critical' ? 'error' : 'textSecondary'}
+              >
+                Status: {getPowerStatus(data[data.length - 1]?.consumption || 0).toUpperCase()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" color="textSecondary">
+                Average Power
+              </Typography>
+              <Typography variant="h4">
+                {Math.round(data.reduce((acc, curr) => acc + curr.consumption, 0) / data.length)} W
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" color="textSecondary">
+                Peak Power
+              </Typography>
+              <Typography variant="h4">
+                {Math.max(...data.map(d => d.consumption))} W
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
       <Box height={400}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
@@ -232,8 +390,46 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
             <XAxis dataKey={getXAxisDataKey()} />
             <YAxis yAxisId="left" label={{ value: 'Power (W)', angle: -90, position: 'insideLeft' }} />
             <YAxis yAxisId="right" orientation="right" label={{ value: 'Cost ($)', angle: 90, position: 'insideRight' }} />
-            <Tooltip />
-            <Legend />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend 
+              content={({ payload }) => (
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 1 }}>
+                  {payload?.map((entry, index) => (
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          backgroundColor: entry.color,
+                          borderRadius: '50%'
+                        }}
+                      />
+                      <Typography variant="caption">
+                        {entry.value}
+                      </Typography>
+                    </Box>
+                  ))}
+                  {data[0]?.expectedRange && (
+                    <>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            backgroundColor: 'transparent',
+                            border: '2px dashed #ff0000',
+                            borderRadius: '50%'
+                          }}
+                        />
+                        <Typography variant="caption" color="textSecondary">
+                          Normal Range: {Math.round(data[0].expectedRange.min)}W - {Math.round(data[0].expectedRange.max)}W
+                        </Typography>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              )}
+            />
             <Line
               yAxisId="left"
               type="monotone"
@@ -247,6 +443,18 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
               dataKey="cost"
               stroke="#82ca9d"
               name="Cost"
+            />
+            <ReferenceLine
+              yAxisId="left"
+              y={data[0]?.expectedRange?.max}
+              stroke="red"
+              strokeDasharray="3 3"
+            />
+            <ReferenceLine
+              yAxisId="left"
+              y={data[0]?.expectedRange?.min}
+              stroke="red"
+              strokeDasharray="3 3"
             />
           </LineChart>
         </ResponsiveContainer>

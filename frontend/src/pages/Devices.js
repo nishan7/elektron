@@ -15,6 +15,7 @@ import {
   DialogActions,
   TextField,
   Chip,
+  Stack,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -29,6 +30,71 @@ import config from '../config';
 
 // Components
 import DeviceDetails from '../components/DeviceDetails';
+import DeviceList from '../components/DeviceList';
+
+// Sample devices data
+const sampleDevices = [
+  {
+    id: '1',
+    name: 'HVAC Unit 1',
+    type: 'HVAC',
+    status: 'active',
+    health: 'good',
+    location: 'Floor 1',
+    model: 'HVAC-2000',
+    manufacturer: 'CoolTech',
+    firmware_version: '2.1.0',
+    is_active: true
+  },
+  {
+    id: '2',
+    name: 'Lighting Panel A',
+    type: 'Lighting',
+    status: 'active',
+    health: 'warning',
+    location: 'Floor 2',
+    model: 'LP-100',
+    manufacturer: 'BrightTech',
+    firmware_version: '1.5.2',
+    is_active: true
+  },
+  {
+    id: '3',
+    name: 'Server Room UPS',
+    type: 'UPS',
+    status: 'active',
+    health: 'critical',
+    location: 'Basement',
+    model: 'UPS-5000',
+    manufacturer: 'PowerSafe',
+    firmware_version: '3.0.1',
+    is_active: true
+  },
+  {
+    id: '4',
+    name: 'Main Distribution Panel',
+    type: 'Panel',
+    status: 'active',
+    health: 'good',
+    location: 'Utility Room',
+    model: 'MDP-200',
+    manufacturer: 'PowerGrid',
+    firmware_version: '1.0.0',
+    is_active: true
+  },
+  {
+    id: '5',
+    name: 'Solar Inverter',
+    type: 'Inverter',
+    status: 'active',
+    health: 'good',
+    location: 'Roof',
+    model: 'SI-3000',
+    manufacturer: 'SunPower',
+    firmware_version: '2.0.0',
+    is_active: true
+  }
+];
 
 function DevicesPage() {
   const [loading, setLoading] = useState(true);
@@ -46,20 +112,13 @@ function DevicesPage() {
   });
 
   useEffect(() => {
-    fetchDevices();
+    // Simulate API call with sample data
+    setLoading(true);
+    setTimeout(() => {
+      setDevices(sampleDevices);
+      setLoading(false);
+    }, 1000);
   }, []);
-
-  const fetchDevices = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/device`);
-      setDevices(response.data);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load devices');
-      setLoading(false);
-    }
-  };
 
   const handleDeviceClick = (device) => {
     setSelectedDevice(device);
@@ -75,8 +134,15 @@ function DevicesPage() {
 
   const handleAddSubmit = async () => {
     try {
-      const response = await axios.post(`${config.apiUrl}/api/device`, newDevice);
-      setDevices([...devices, response.data]);
+      // Simulate API call
+      const newDeviceWithId = {
+        ...newDevice,
+        id: String(devices.length + 1),
+        status: 'active',
+        health: 'good',
+        is_active: true
+      };
+      setDevices([...devices, newDeviceWithId]);
       setAddDialogOpen(false);
       setNewDevice({
         name: '',
@@ -93,13 +159,13 @@ function DevicesPage() {
 
   const handleDeviceUpdated = (updatedDevice) => {
     setDevices(devices.map(device => 
-      device._id === updatedDevice.id ? updatedDevice : device
+      device.id === updatedDevice.id ? updatedDevice : device
     ));
     setSelectedDevice(null);
   };
 
   const handleDeviceDeleted = (deviceId) => {
-    setDevices(devices.filter(device => device._id !== deviceId));
+    setDevices(devices.filter(device => device.id !== deviceId));
     setSelectedDevice(null);
   };
 
@@ -148,7 +214,7 @@ function DevicesPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
+        <Typography variant="h6">
           Devices
         </Typography>
         <Button
@@ -161,38 +227,9 @@ function DevicesPage() {
       </Box>
 
       <Grid container spacing={3}>
-        {devices.map((device) => (
-          <Grid item xs={12} md={6} lg={4} key={device._id}>
-            <Card>
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="h6">
-                    {device.name}
-                  </Typography>
-                  {getHealthChip(device.health_status)}
-                </Box>
-                <Typography color="textSecondary" gutterBottom>
-                  Type: {device.device_type}
-                </Typography>
-                <Typography color="textSecondary" gutterBottom>
-                  Location: {device.location}
-                </Typography>
-                <Typography color="textSecondary">
-                  Model: {device.model}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => handleDeviceClick(device)}
-                >
-                  Details
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
+        <Grid item xs={12}>
+          <DeviceList devices={devices} onDeviceClick={handleDeviceClick} />
+        </Grid>
       </Grid>
 
       {selectedDevice && (

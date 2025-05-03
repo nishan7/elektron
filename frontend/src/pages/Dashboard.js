@@ -99,42 +99,16 @@ function Dashboard() {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, p: 3 }}>
+    <Box>
       <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <PowerConsumptionChart selectedDevice={selectedDevice} onDeviceChange={handleDeviceChange} />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <DeviceStatus devices={devices} />
+        </Grid>
         <Grid item xs={12}>
-          <Typography variant="h4" gutterBottom>
-            Dashboard
-          </Typography>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Device Status" />
-            <CardContent>
-              <DeviceStatus devices={devices} />
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader title="Recent Alerts" />
-            <CardContent>
-              <AlertsList alerts={dashboardData.recentAlerts} />
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12}>
-          <Card>
-            <CardHeader title="Power Consumption" />
-            <CardContent>
-              <PowerConsumptionChart 
-                selectedDevice={selectedDevice}
-                onDeviceChange={handleDeviceChange}
-              />
-            </CardContent>
-          </Card>
+          <AlertsList alerts={dashboardData.recentAlerts} />
         </Grid>
       </Grid>
     </Box>

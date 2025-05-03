@@ -127,10 +127,6 @@ function AlertsPage() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Alerts
-      </Typography>
-
       <Paper sx={{ mt: 3 }}>
         <Tabs
           value={tabValue}
