@@ -1,159 +1,106 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
-  Typography,
   Paper,
+  Typography,
   Grid,
   TextField,
   Button,
   Switch,
   FormControlLabel,
   Divider,
-  Alert,
-  Snackbar,
 } from '@mui/material';
-import { Save as SaveIcon } from '@mui/icons-material';
-import { useTheme } from '../context/ThemeContext';
 
-function Settings() {
-  const { darkMode, toggleDarkMode } = useTheme();
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    alertThreshold: 80,
-    refreshInterval: 30,
-  });
-
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  const handleChange = (event) => {
-    const { name, value, checked } = event.target;
-    setSettings({
-      ...settings,
-      [name]: event.target.type === 'checkbox' ? checked : value,
-    });
-  };
-
-  const handleSave = () => {
-    // Here you would typically make an API call to save the settings
-    setSnackbar({
-      open: true,
-      message: 'Settings saved successfully',
-      severity: 'success',
-    });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
+const Settings = () => {
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Settings
-      </Typography>
-
-      <Paper sx={{ p: 3, mt: 3 }}>
+    <Box sx={{ p: 3 }}>
+      <Paper sx={{ p: 3 }}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom>
-              Notifications
+              Notification Settings
             </Typography>
             <FormControlLabel
-              control={
-                <Switch
-                  checked={settings.emailNotifications}
-                  onChange={handleChange}
-                  name="emailNotifications"
-                />
-              }
+              control={<Switch defaultChecked />}
               label="Email Notifications"
             />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Divider />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              Alert Settings
-            </Typography>
-            <TextField
-              fullWidth
-              label="Alert Threshold (%)"
-              name="alertThreshold"
-              type="number"
-              value={settings.alertThreshold}
-              onChange={handleChange}
-              margin="normal"
-              helperText="Set the threshold percentage for triggering alerts"
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Divider />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              Display Settings
-            </Typography>
-            <TextField
-              fullWidth
-              label="Refresh Interval (seconds)"
-              name="refreshInterval"
-              type="number"
-              value={settings.refreshInterval}
-              onChange={handleChange}
-              margin="normal"
-              helperText="Set how often the dashboard should refresh"
+            <FormControlLabel
+              control={<Switch defaultChecked />}
+              label="SMS Notifications"
             />
             <FormControlLabel
-              control={
-                <Switch
-                  checked={darkMode}
-                  onChange={toggleDarkMode}
-                  name="darkMode"
-                />
-              }
-              label="Dark Mode"
+              control={<Switch defaultChecked />}
+              label="Critical Alerts"
             />
           </Grid>
 
           <Grid item xs={12}>
-            <Box display="flex" justifyContent="flex-end" mt={2}>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<SaveIcon />}
-                onClick={handleSave}
-              >
-                Save Settings
+            <Divider />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Alert Thresholds
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Warning Threshold (kW)"
+                  type="number"
+                  defaultValue="100"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Critical Threshold (kW)"
+                  type="number"
+                  defaultValue="150"
+                />
+              </Grid>
+            </Grid>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Divider />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              System Settings
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Data Refresh Interval (seconds)"
+                  type="number"
+                  defaultValue="30"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Time Zone"
+                  defaultValue="UTC"
+                />
+              </Grid>
+            </Grid>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+              <Button variant="outlined">Cancel</Button>
+              <Button variant="contained" color="primary">
+                Save Changes
               </Button>
             </Box>
           </Grid>
         </Grid>
       </Paper>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
-}
+};
 
 export default Settings; 

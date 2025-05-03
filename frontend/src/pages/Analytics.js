@@ -19,6 +19,7 @@ import config from '../config';
 // Components
 import PowerConsumptionChart from '../components/PowerConsumptionChart';
 import DeviceAnalytics from '../components/DeviceAnalytics';
+import LoadDistribution from '../components/LoadDistribution';
 
 // Sample devices data
 const sampleDevices = [
@@ -83,57 +84,17 @@ function Analytics() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Analytics
-      </Typography>
-
-      <Paper sx={{ mt: 3, p: 2 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>Select Device</InputLabel>
-              <Select
-                value={selectedDevice}
-                onChange={handleDeviceChange}
-                label="Select Device"
-              >
-                <MenuItem value="all">All Devices</MenuItem>
-                {devices.map((device) => (
-                  <MenuItem key={device._id} value={device._id}>
-                    {device.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              indicatorColor="primary"
-              textColor="primary"
-            >
-              <Tab label="Power Consumption" />
-              <Tab label="Device Analytics" />
-            </Tabs>
-          </Grid>
-
-          <Grid item xs={12}>
-            {tabValue === 0 ? (
-              <PowerConsumptionChart
-                deviceId={selectedDevice}
-                useSampleData={useSampleData}
-              />
-            ) : (
-              <DeviceAnalytics
-                deviceId={selectedDevice}
-                useSampleData={useSampleData}
-              />
-            )}
-          </Grid>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <PowerConsumptionChart />
         </Grid>
-      </Paper>
+        <Grid item xs={12} md={6}>
+          <DeviceAnalytics />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <LoadDistribution />
+        </Grid>
+      </Grid>
     </Box>
   );
 }
