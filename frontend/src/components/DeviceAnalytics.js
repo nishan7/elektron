@@ -15,6 +15,7 @@ import {
   Stack,
   IconButton,
   Tooltip as MuiTooltip,
+  LinearProgress,
 } from '@mui/material';
 import {
   BarChart,
@@ -37,10 +38,21 @@ import {
 
 const DeviceAnalytics = () => {
   const [loading, setLoading] = useState(true);
-  const [deviceData, setDeviceData] = useState(null);
+  const [deviceData, setDeviceData] = useState({
+    currentConsumption: 0,
+    hourlyData: [],
+    trendData: []
+  });
   const [selectedDevice, setSelectedDevice] = useState('all');
   const [timeRange, setTimeRange] = useState('24h');
-  const [metrics, setMetrics] = useState(null);
+  const [metrics, setMetrics] = useState({
+    totalConsumption: 0,
+    totalCost: 0,
+    costSavings: 0,
+    efficiency: 0,
+    carbonReduction: 0,
+    roi: 0
+  });
 
   // Sample devices for the filter
   const devices = [
@@ -54,7 +66,8 @@ const DeviceAnalytics = () => {
   useEffect(() => {
     const generateDeviceData = () => {
       // Generate sample device data with more business metrics
-      const data = {
+      return {
+        currentConsumption: Math.floor(Math.random() * 1000),
         hourlyData: Array.from({ length: 24 }, (_, i) => ({
           hour: i,
           consumption: Math.floor(Math.random() * 1000),
@@ -68,7 +81,6 @@ const DeviceAnalytics = () => {
           cost: Math.floor(80 + Math.random() * 40),
         })),
       };
-      return data;
     };
 
     const generateMetrics = () => ({
@@ -128,76 +140,76 @@ const DeviceAnalytics = () => {
                 Export Report
               </Button>
             </Box>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card variant="outlined">
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={3}>
+                <Card>
                   <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      Total Consumption
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Current Power Consumption
                     </Typography>
-                    <Typography variant="h4">
-                      {metrics.totalConsumption} kWh
+                    <Typography variant="h4" sx={{ mb: 1 }}>
+                      {deviceData.currentConsumption} kW
                     </Typography>
-                    <Box display="flex" alignItems="center" mt={1}>
-                      <TrendingDownIcon color="success" />
-                      <Typography variant="body2" color="success">
-                        12% vs last period
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <TrendingDownIcon color="error" />
+                      <Typography variant="body2" color="error.main">
+                        12%
                       </Typography>
-                    </Box>
+                    </Stack>
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card variant="outlined">
+              <Grid item xs={12} md={3}>
+                <Card>
                   <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                       Cost Savings
                     </Typography>
-                    <Typography variant="h4">
+                    <Typography variant="h4" sx={{ mb: 1 }}>
                       ${metrics.costSavings}
                     </Typography>
-                    <Box display="flex" alignItems="center" mt={1}>
+                    <Stack direction="row" spacing={1} alignItems="center">
                       <TrendingUpIcon color="success" />
-                      <Typography variant="body2" color="success">
-                        8% improvement
+                      <Typography variant="body2" color="success.main">
+                        8%
                       </Typography>
-                    </Box>
+                    </Stack>
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card variant="outlined">
+              <Grid item xs={12} md={3}>
+                <Card>
                   <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      System Efficiency
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Efficiency Score
                     </Typography>
-                    <Typography variant="h4">
+                    <Typography variant="h4" sx={{ mb: 1 }}>
                       {metrics.efficiency}%
                     </Typography>
-                    <Box display="flex" alignItems="center" mt={1}>
+                    <Stack direction="row" spacing={1} alignItems="center">
                       <TrendingUpIcon color="success" />
-                      <Typography variant="body2" color="success">
-                        5% improvement
+                      <Typography variant="body2" color="success.main">
+                        5%
                       </Typography>
-                    </Box>
+                    </Stack>
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card variant="outlined">
+              <Grid item xs={12} md={3}>
+                <Card>
                   <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      ROI
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Sustainability Score
                     </Typography>
-                    <Typography variant="h4">
-                      {metrics.roi}%
+                    <Typography variant="h4" sx={{ mb: 1 }}>
+                      {metrics.carbonReduction}%
                     </Typography>
-                    <Box display="flex" alignItems="center" mt={1}>
+                    <Stack direction="row" spacing={1} alignItems="center">
                       <TrendingUpIcon color="success" />
-                      <Typography variant="body2" color="success">
-                        15% increase
+                      <Typography variant="body2" color="success.main">
+                        3%
                       </Typography>
-                    </Box>
+                    </Stack>
                   </CardContent>
                 </Card>
               </Grid>

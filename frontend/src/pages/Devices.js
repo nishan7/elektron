@@ -102,6 +102,7 @@ function DevicesPage() {
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newDevice, setNewDevice] = useState({
     name: '',
     device_type: '',
@@ -122,6 +123,7 @@ function DevicesPage() {
 
   const handleDeviceClick = (device) => {
     setSelectedDevice(device);
+    setEditDialogOpen(true);
   };
 
   const handleAddClick = () => {
@@ -154,6 +156,28 @@ function DevicesPage() {
       });
     } catch (err) {
       setError('Failed to add device');
+    }
+  };
+
+  const handleEditClose = () => {
+    setEditDialogOpen(false);
+    setSelectedDevice(null);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      // Simulate API call
+      const updatedDevice = {
+        ...selectedDevice,
+        ...newDevice,
+      };
+      setDevices(devices.map(device => 
+        device.id === updatedDevice.id ? updatedDevice : device
+      ));
+      setEditDialogOpen(false);
+      setSelectedDevice(null);
+    } catch (err) {
+      setError('Failed to update device');
     }
   };
 
@@ -240,7 +264,7 @@ function DevicesPage() {
         />
       )}
 
-      <Dialog open={addDialogOpen} onClose={handleAddClose}>
+      <Dialog open={addDialogOpen} onClose={handleAddClose} maxWidth="sm" fullWidth>
         <DialogTitle>Add New Device</DialogTitle>
         <DialogContent>
           <TextField
@@ -291,6 +315,65 @@ function DevicesPage() {
           <Button onClick={handleAddClose}>Cancel</Button>
           <Button onClick={handleAddSubmit} variant="contained">
             Add Device
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onClose={handleEditClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Device</DialogTitle>
+        <DialogContent>
+          {selectedDevice && (
+            <>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Device Name"
+                fullWidth
+                defaultValue={selectedDevice.name}
+                onChange={(e) => setNewDevice({ ...newDevice, name: e.target.value })}
+              />
+              <TextField
+                margin="dense"
+                label="Device Type"
+                fullWidth
+                defaultValue={selectedDevice.type}
+                onChange={(e) => setNewDevice({ ...newDevice, device_type: e.target.value })}
+              />
+              <TextField
+                margin="dense"
+                label="Location"
+                fullWidth
+                defaultValue={selectedDevice.location}
+                onChange={(e) => setNewDevice({ ...newDevice, location: e.target.value })}
+              />
+              <TextField
+                margin="dense"
+                label="Model"
+                fullWidth
+                defaultValue={selectedDevice.model}
+                onChange={(e) => setNewDevice({ ...newDevice, model: e.target.value })}
+              />
+              <TextField
+                margin="dense"
+                label="Manufacturer"
+                fullWidth
+                defaultValue={selectedDevice.manufacturer}
+                onChange={(e) => setNewDevice({ ...newDevice, manufacturer: e.target.value })}
+              />
+              <TextField
+                margin="dense"
+                label="Firmware Version"
+                fullWidth
+                defaultValue={selectedDevice.firmware_version}
+                onChange={(e) => setNewDevice({ ...newDevice, firmware_version: e.target.value })}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditClose}>Cancel</Button>
+          <Button onClick={handleEditSubmit} variant="contained">
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>
