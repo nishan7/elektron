@@ -54,7 +54,9 @@ const generateHourlyData = (deviceId = 'all') => {
       cost: Math.round((load / 1000) * 0.15), // $0.15 per kWh
     });
   }
+      console.log(data)
   return data;
+  //todo call generatehourlydata with deviceId
 };
 
 const generateDailyData = (deviceId = 'all') => {
@@ -78,7 +80,10 @@ const generateDailyData = (deviceId = 'all') => {
       cost: Math.round((load * 24 / 1000) * 0.15), // Daily cost
     });
   });
+  console.log(data)
   return data;
+
+  // tood get daily data from api
 };
 
 const generateMonthlyData = (deviceId = 'all') => {
@@ -104,7 +109,10 @@ const generateMonthlyData = (deviceId = 'all') => {
       cost: Math.round((load * 24 * 30 / 1000) * 0.15), // Monthly cost
     });
   });
+    console.log(data)
   return data;
+
+  //todo get monthly data from api
 };
 
 // Sample devices data

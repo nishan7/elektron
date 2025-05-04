@@ -25,7 +25,7 @@ import {
   Error as ErrorIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import API from '../API';
 import config from '../config';
 
 // Components
@@ -113,12 +113,17 @@ function DevicesPage() {
   });
 
   useEffect(() => {
-    // Simulate API call with sample data
     setLoading(true);
-    setTimeout(() => {
-      setDevices(sampleDevices);
-      setLoading(false);
-    }, 1000);
+    API.get('/api/device')
+      .then((response) => {
+        setDevices(response.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        // setError('Failed to fetch devices');
+        setDevices(sampleDevices)
+        setLoading(false);
+      });
   }, []);
 
   const handleDeviceClick = (device) => {

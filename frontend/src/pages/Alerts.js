@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -23,6 +23,7 @@ import {
 
 // Components
 import AlertsList from '../components/AlertsList';
+import API from "../API";
 
 // Sample data
 const sampleDevices = [
@@ -81,6 +82,8 @@ const sampleAlerts = [
   },
 ];
 
+
+
 function AlertsPage() {
   const [tabValue, setTabValue] = useState(0);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -89,8 +92,21 @@ function AlertsPage() {
     device: 'all',
     resolved: false,
   });
+  const [alerts, setAlerts] = useState([]);
 
-  const filteredAlerts = sampleAlerts.filter(alert => {
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const response = await API.get('/api/alert');
+        setAlerts(response.data);
+      } catch (error) {
+          setAlerts(sampleAlerts);
+      }
+    };
+    fetchAlerts();
+  }, []);
+
+  const filteredAlerts = alerts.filter(alert => {
     const matchesSeverity = filters.severity === 'all' || alert.type === filters.severity;
     const matchesDevice = filters.device === 'all' || alert.deviceId === filters.device;
     const matchesResolved = alert.resolved === filters.resolved;
@@ -139,14 +155,15 @@ function AlertsPage() {
         </Tabs>
 
         <Box sx={{ p: 2 }}>
-          <Box display="flex" justifyContent="flex-end" mb={2}>
-            <Button
-              variant="outlined"
-              onClick={handleFilterClick}
-            >
-              Filter Alerts
-            </Button>
-          </Box>
+          {/*<Box display="flex" justifyContent="flex-end" mb={2}>*/}
+          {/*  <Button*/}
+          {/*    variant="outlined"*/}
+          {/*    onClick={handleFilterClick}*/}
+          {/*  >*/}
+          {/*    Filter Alerts*/}
+          {/*  </Button>*/}
+          {/*</Box>*/}
+          // todo removed filter alerts button
 
           <AlertsList alerts={filteredAlerts} />
         </Box>

@@ -11,7 +11,7 @@ def validate_device_data(device: Device, data: Record):
         alert = Alert(
             device_id=device.id,
             start_time=data.timestamp,
-            reason=reason,
+            message=reason,
             metric=str(data.power),
         )
         db[ALERT_COLLECTION_NAME].insert_one(alert.model_dump(by_alias=True))

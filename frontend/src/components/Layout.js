@@ -59,7 +59,7 @@ function Layout({ children }) {
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          Electricity Monitor
+          Elektron
         </Typography>
       </Toolbar>
       <Divider />

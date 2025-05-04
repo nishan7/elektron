@@ -76,6 +76,7 @@ const sampleAlerts = [
   },
 ];
 
+
 function Dashboard() {
   const [selectedDevice, setSelectedDevice] = useState('all');
   const [devices] = useState(sampleDevices);
