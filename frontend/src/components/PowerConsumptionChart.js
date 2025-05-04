@@ -36,7 +36,8 @@ const generateHourlyData = async (deviceId, startDate, endDate) => {
     start_time: `${startDate}T00:00:00Z`,
     end_time: `${endDate}T23:59:59Z`
   };
-  if (deviceId !== null) {
+  console.log(deviceId)
+  if (deviceId !== null && deviceId !== 'all') {
     params.device_id = deviceId;
   }
   const response = await API.get('/api/record/hourly-summary', { params });
@@ -48,7 +49,7 @@ const generateDailyData = async (deviceId, startDate, endDate) => {
     start_time: `${startDate}T00:00:00Z`,
     end_time: `${endDate}T23:59:59Z`
   };
-  if (deviceId !== null) {
+  if (deviceId !== null && deviceId !== 'all') {
     params.device_id = deviceId;
   }
   const response = await API.get('/api/record/daily-summary', { params });
@@ -57,9 +58,6 @@ const generateDailyData = async (deviceId, startDate, endDate) => {
 
 const generateMonthlyData = async (deviceId, year) => {
   const params = { year: year };
-  if (deviceId !== null) {
-    params.device_id = deviceId;
-  }
   const response = await API.get('/api/record/monthly-summary', { params });
   return response.data;
 };
