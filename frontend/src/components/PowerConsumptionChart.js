@@ -15,7 +15,7 @@ import {
   Button,
   ButtonGroup,
   Card,
-  CardContent,
+  CardContent, TextField,
 } from '@mui/material';
 import {
   LineChart,
@@ -28,101 +28,42 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import API from "../API";
 
-// Sample data generator functions
-const generateHourlyData = (deviceId = 'all') => {
-  const data = [];
-  const baseLoad = deviceId === 'all' ? 2000 : 1000; // Base load in watts
-  const peakHours = [8, 9, 10, 17, 18, 19]; // Peak usage hours
 
-  for (let hour = 0; hour < 24; hour++) {
-    let load = baseLoad;
-    
-    // Add peak load during peak hours
-    if (peakHours.includes(hour)) {
-      load += Math.random() * (deviceId === 'all' ? 3000 : 1500) + (deviceId === 'all' ? 1000 : 500);
-    } else {
-      load += Math.random() * (deviceId === 'all' ? 1000 : 500);
-    }
-
-    // Add some randomness
-    load += (Math.random() - 0.5) * (deviceId === 'all' ? 500 : 250);
-
-    data.push({
-      hour: `${hour}:00`,
-      consumption: Math.round(load),
-      cost: Math.round((load / 1000) * 0.15), // $0.15 per kWh
-    });
+const generateHourlyData = async (deviceId, startDate, endDate) => {
+  const params = {
+    start_time: `${startDate}T00:00:00Z`,
+    end_time: `${endDate}T23:59:59Z`
+  };
+  if (deviceId !== null) {
+    params.device_id = deviceId;
   }
-      console.log(data)
-  return data;
-  //todo call generatehourlydata with deviceId
+  const response = await API.get('/api/record/hourly-summary', { params });
+  return response.data;
 };
 
-const generateDailyData = (deviceId = 'all') => {
-  const data = [];
-  const baseLoad = deviceId === 'all' ? 1500 : 750;
-  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  weekdays.forEach((day, index) => {
-    let load = baseLoad;
-    
-    // Higher consumption on weekdays
-    if (index < 5) {
-      load += Math.random() * (deviceId === 'all' ? 2000 : 1000) + (deviceId === 'all' ? 1000 : 500);
-    } else {
-      load += Math.random() * (deviceId === 'all' ? 1000 : 500);
-    }
-
-    data.push({
-      day,
-      consumption: Math.round(load * 24), // Daily consumption
-      cost: Math.round((load * 24 / 1000) * 0.15), // Daily cost
-    });
-  });
-  console.log(data)
-  return data;
-
-  // tood get daily data from api
+const generateDailyData = async (deviceId, startDate, endDate) => {
+  const params = {
+    start_time: `${startDate}T00:00:00Z`,
+    end_time: `${endDate}T23:59:59Z`
+  };
+  if (deviceId !== null) {
+    params.device_id = deviceId;
+  }
+  const response = await API.get('/api/record/daily-summary', { params });
+  return response.data;
 };
 
-const generateMonthlyData = (deviceId = 'all') => {
-  const data = [];
-  const baseLoad = deviceId === 'all' ? 2000 : 1000;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  months.forEach((month, index) => {
-    let load = baseLoad;
-    
-    // Higher consumption in summer and winter months
-    if (index >= 5 && index <= 8) { // Summer months
-      load += Math.random() * (deviceId === 'all' ? 3000 : 1500) + (deviceId === 'all' ? 2000 : 1000);
-    } else if (index >= 11 || index <= 1) { // Winter months
-      load += Math.random() * (deviceId === 'all' ? 2500 : 1250) + (deviceId === 'all' ? 1500 : 750);
-    } else {
-      load += Math.random() * (deviceId === 'all' ? 1500 : 750);
-    }
-
-    data.push({
-      month,
-      consumption: Math.round(load * 24 * 30), // Monthly consumption
-      cost: Math.round((load * 24 * 30 / 1000) * 0.15), // Monthly cost
-    });
-  });
-    console.log(data)
-  return data;
-
-  //todo get monthly data from api
+const generateMonthlyData = async (deviceId, year) => {
+  const params = { year: year };
+  if (deviceId !== null) {
+    params.device_id = deviceId;
+  }
+  const response = await API.get('/api/record/monthly-summary', { params });
+  return response.data;
 };
 
-// Sample devices data
-const sampleDevices = [
-  { id: '1', name: 'Main Panel', type: 'panel', status: 'active' },
-  { id: '2', name: 'HVAC System', type: 'hvac', status: 'active' },
-  { id: '3', name: 'Lighting Circuit', type: 'lighting', status: 'active' },
-  { id: '4', name: 'Kitchen Appliances', type: 'appliance', status: 'active' },
-  { id: '5', name: 'Office Equipment', type: 'equipment', status: 'active' },
-];
 
 // Add these utility functions after the sample data generators
 const calculateStatistics = (data) => {
@@ -146,49 +87,73 @@ const detectAnomalies = (data, sensitivity = 2) => {
   }));
 };
 
-function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceId }) {
+function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
   const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('hourly');
   const [data, setData] = useState([]);
-  const [currentDevice, setCurrentDevice] = useState(deviceId || selectedDevice);
+  const [currentDevice, setCurrentDevice] = useState(null);
   const [thresholds, setThresholds] = useState({
     warning: 80,
     critical: 90,
   });
+  // Add state for startDate and endDate
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  // Device options state
+  const [deviceOptions, setDeviceOptions] = useState([]);
+  // Use stored state for startDateStr and endDateStr
+  const startDateStr = startDate || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const endDateStr = endDate || new Date().toISOString().split('T')[0];
 
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    let sampleData;
-    switch (timeRange) {
-      case 'hourly':
-        sampleData = generateHourlyData(currentDevice);
-        break;
-      case 'daily':
-        sampleData = generateDailyData(currentDevice);
-        break;
-      case 'monthly':
-        sampleData = generateMonthlyData(currentDevice);
-        break;
-      default:
-        sampleData = generateHourlyData(currentDevice);
+    // Guard: if no currentDevice and not monthly, skip API call
+    if (!currentDevice && timeRange !== 'monthly') {
+      setData([]);
+      setLoading(false);
+      return;
     }
-    
+    let sampleData;
+    if (timeRange === 'hourly') {
+      sampleData = generateHourlyData(currentDevice, startDateStr, endDateStr);
+    } else if (timeRange === 'daily') {
+      sampleData = generateDailyData(currentDevice, startDateStr, endDateStr);
+    } else if (timeRange === 'monthly') {
+      const year = startDateStr.substring(0, 4);
+      console.log('Calling generateMonthlyData with:', currentDevice, year);
+      sampleData = generateMonthlyData(currentDevice, year);
+    } else {
+      sampleData = generateHourlyData(currentDevice, startDateStr, endDateStr);
+    }
     // Add anomaly detection
-    const dataWithAnomalies = detectAnomalies(sampleData);
+    const dataWithAnomalies = detectAnomalies(await sampleData);
     setData(dataWithAnomalies);
     setLoading(false);
-  }, [timeRange, currentDevice]);
+  }, [timeRange, currentDevice, startDateStr, endDateStr]);
 
-  // Update currentDevice when deviceId or selectedDevice prop changes
+  // Update currentDevice when selectedDevice prop changes
   useEffect(() => {
-    setCurrentDevice(deviceId || selectedDevice);
-    fetchData();
-  }, [deviceId, selectedDevice, fetchData]);
+    setCurrentDevice(selectedDevice ?? null);
+  }, [selectedDevice]);
 
   // Fetch data when timeRange or currentDevice changes
   useEffect(() => {
     fetchData();
   }, [timeRange, currentDevice, fetchData]);
+
+  // Fetch the device list from API on mount
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        const res = await API.get('/api/device');
+        setDeviceOptions(res.data);
+        console.log(res.data)
+      } catch (err) {
+        console.error('Failed to fetch devices:', err);
+      }
+    };
+    fetchDevices();
+  }, []);
 
   const handleTimeRangeChange = (event, newValue) => {
     if (newValue !== null) {
@@ -198,6 +163,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
 
   const handleDeviceChange = (event) => {
     const newDevice = event.target.value;
+    console.log(newDevice, event.target);
     setCurrentDevice(newDevice);
     if (onDeviceChange) {
       onDeviceChange(newDevice);
@@ -220,7 +186,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
   const getPowerStatus = (power) => {
     const maxPower = currentDevice ? parseInt(currentDevice.powerRating) : 1000;
     const percentage = (power / maxPower) * 100;
-    
+
     if (percentage >= thresholds.critical) {
       return 'critical';
     } else if (percentage >= thresholds.warning) {
@@ -236,7 +202,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
       const cost = point.cost;
       const status = getPowerStatus(power);
       const isAnomaly = point.isAnomaly;
-      
+
       return (
         <Card>
           <CardContent>
@@ -278,6 +244,8 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
     );
   }
 
+  const activeDevice = deviceOptions.find(d => d._id === currentDevice);
+
   return (
     <Paper sx={{ p: 3 }}>
       <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
@@ -285,14 +253,15 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
           <FormControl fullWidth>
             <InputLabel>Device</InputLabel>
             <Select
-              value={currentDevice}
+              value={currentDevice ?? ''}
               onChange={handleDeviceChange}
               label="Device"
             >
+              <MenuItem value="">Select a Device</MenuItem>
               <MenuItem value="all">All Devices</MenuItem>
-              {sampleDevices.map((device) => (
-                <MenuItem key={device.id} value={device.id}>
-                  {device.name}
+              {deviceOptions.map((device, index) => (
+                <MenuItem key={device._id || index} value={device._id}>
+                  {device.name || `Device ${index + 1}`}
                 </MenuItem>
               ))}
             </Select>
@@ -310,28 +279,47 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
             <ToggleButton value="monthly">Monthly</ToggleButton>
           </ToggleButtonGroup>
         </Grid>
+        {/* Removed Start Date and End Date input fields */}
       </Grid>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h6">
-          {currentDevice.name} Power Consumption
+          {activeDevice?.name || 'Select a Device'} Power Consumption
         </Typography>
         <ButtonGroup size="small">
           <Button
             variant={timeRange === 'hourly' ? 'contained' : 'outlined'}
-            onClick={() => setTimeRange('hourly')}
+            onClick={() => {
+              setTimeRange('hourly');
+              const end = new Date();
+              const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+              setStartDate(start.toISOString().split('T')[0]);
+              setEndDate(end.toISOString().split('T')[0]);
+            }}
           >
             24 Hours
           </Button>
           <Button
             variant={timeRange === 'daily' ? 'contained' : 'outlined'}
-            onClick={() => setTimeRange('daily')}
+            onClick={() => {
+              setTimeRange('daily');
+              const end = new Date();
+              const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+              setStartDate(start.toISOString().split('T')[0]);
+              setEndDate(end.toISOString().split('T')[0]);
+            }}
           >
             7 Days
           </Button>
           <Button
             variant={timeRange === 'monthly' ? 'contained' : 'outlined'}
-            onClick={() => setTimeRange('monthly')}
+            onClick={() => {
+              setTimeRange('monthly');
+              const end = new Date();
+              const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+              setStartDate(start.toISOString().split('T')[0]);
+              setEndDate(end.toISOString().split('T')[0]);
+            }}
           >
             30 Days
           </Button>
@@ -399,7 +387,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange, deviceI
             <YAxis yAxisId="left" label={{ value: 'Power (W)', angle: -90, position: 'insideLeft' }} />
             <YAxis yAxisId="right" orientation="right" label={{ value: 'Cost ($)', angle: 90, position: 'insideRight' }} />
             <Tooltip content={<CustomTooltip />} />
-            <Legend 
+            <Legend
               content={({ payload }) => (
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 1 }}>
                   {payload?.map((entry, index) => (
