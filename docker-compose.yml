@@ -46,24 +46,61 @@ services:
       - backend
 
 
-  zookeeper:
-    image: bitnami/zookeeper:latest
-    ports:
-      - "2181:2181"
-    environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
 
   kafka:
-    image: bitnami/kafka:latest
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      ALLOW_PLAINTEXT_LISTENER: "yes"
+      # Use a recent stable Bitnami Kafka image
+      image: docker.io/bitnami/kafka:3.7 # Using a slightly newer version
+
+      # Give your container a predictable name and service name 'kafka'
+      container_name: kafka_single_node
+      # The service name 'kafka' allows other containers in the network to reach it by this name
+
+      # Map the client port (9092) from the container to the host.
+      # Local clients on your host machine will connect to localhost:9092.
+      # Other containers will use the internal Docker network address (kafka:9092).
+      ports:
+        - "9092:9092"
+        - "9093:9093" # Controller port
+
+      environment:
+        # --- KRaft Configuration ---
+        - KAFKA_ENABLE_KRAFT=yes
+        # This node acts as both a broker and a controller
+        - KAFKA_CFG_PROCESS_ROLES=broker,controller
+        # Assign a unique ID to this node
+        - KAFKA_CFG_NODE_ID=1
+        # Define the quorum voters for the controller.
+        - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:9094
+        # --- Listener Configuration ---
+        # Define the listeners Kafka will bind to *inside* the container.
+        # CLIENT://:9092 binds the 'CLIENT' listener to all network interfaces on port 9092 (for both host and internal network access)
+        # CONTROLLER://127.0.0.1:9094 binds the 'CONTROLLER' listener to localhost on port 9094 (internal KRaft communication)
+        - KAFKA_CFG_LISTENERS=CLIENT://0.0.0.0:9093,INTERNAL://:9092,CONTROLLER://127.0.0.1:9094
+        # Map the listener names to security protocols
+        - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+        # This is crucial! It tells clients how to connect back.
+        # Advertise both the 'localhost' address (for the Docker host)
+        # AND the 'kafka' service name (for other containers in the network).
+        - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://localhost:9093, INTERNAL://kafka:9092
+        # Specify which listener is used for controller communication
+        - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+        # Set the inter-broker listener name (required even for single node)
+        - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+        # --- Other Configurations ---
+        - ALLOW_PLAINTEXT_LISTENER=yes
+        - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+        - KAFKA_CFG_NUM_PARTITIONS=1
+        # Optional: Enable Bitnami debug logs
+        #- BITNAMI_DEBUG=yes
+
+      # Persist Kafka data
+      volumes:
+        - kafka_data:/bitnami/kafka
+
+        # Ensure the container restarts if it fails
+#      restart: always
+
+# Define the named volume for persistence
 
   mongo:
     image: mongo:6.0
@@ -93,3 +130,5 @@ services:
 
 volumes:
   mongodb_data:
+  kafka_data:
+    driver: local

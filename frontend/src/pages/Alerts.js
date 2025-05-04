@@ -163,7 +163,7 @@ function AlertsPage() {
           {/*    Filter Alerts*/}
           {/*  </Button>*/}
           {/*</Box>*/}
-          // todo removed filter alerts button
+
 
           <AlertsList alerts={filteredAlerts} />
         </Box>
