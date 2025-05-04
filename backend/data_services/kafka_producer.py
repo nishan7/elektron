@@ -10,8 +10,6 @@ from confluent_kafka import Producer
 KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'readings')
 KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9093')
 
-
-
 DEVICE_IDS = ["6817d8c04173230e40ca2bb2", "6817d8c84173230e40ca2bb3"]  # Example device IDs
 import socket
 
@@ -20,6 +18,7 @@ conf = {'bootstrap.servers': KAFKA_BOOTSTRAP_SERVER,
 producer = Producer(conf)
 print(conf)
 
+
 def run_producer():
     """Runs the Kafka producer loop."""
 
@@ -27,7 +26,10 @@ def run_producer():
         while True:
             for device_id in DEVICE_IDS:
                 reading = {"device_id": device_id,
-                           "timestamp": datetime.datetime.utcnow() - datetime.timedelta(days=random.randint(0, 365)),
+                           "timestamp": datetime.datetime.utcnow() - datetime.timedelta(days=random.randint(0, 365),
+                                                                                        hours=random.randint(0, 23),
+                                                                                        minutes=random.randint(0, 59),
+                                                                                        seconds=random.randint(0, 59)),
                            "power": random.uniform(0, 100), }
 
                 producer.produce(KAFKA_TOPIC, json.dumps(reading, default=str))  # Send as bytes
