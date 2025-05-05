@@ -10,48 +10,47 @@ from models.base import Base
 
 class Device(Base):
     name: str
-    type: Optional[str] = None
+    device_type: str
     location: Optional[str] = None
     model: Optional[str] = None
     manufacturer: Optional[str] = None
     firmware_version: Optional[str] = None
     is_active: bool = True
-    status: Optional[str] = 'active'
-    health: Optional[str] = 'good'
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
     max: Optional[float] = None
-
+    power_threshold: Optional[float] = None
 
 class Record(Base):
     device_id: PydanticObjectId
     power: float
     timestamp: datetime
 
-
 class Alert(Base):
     device_id: PydanticObjectId
-    start_time: datetime
-    end_time: Optional[datetime] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    severity: str = Field(..., description="Alert severity: info, warning, critical")
     message: str
     metric: str
-    type: Optional[str] = 'warning'
+    value: float
+    threshold: float
     resolved: bool = False
+    resolved_at: Optional[datetime] = None
+    
+    @validator('severity')
+    def validate_severity(cls, v):
+        allowed_values = ['info', 'warning', 'critical']
+        if v not in allowed_values:
+            raise ValueError(f'Severity must be one of {allowed_values}')
+        return v
 
-class AlertResponse(Alert):
-    id: PydanticObjectId
-    device_name: str
-    timestamp: datetime
+class Settings(Base):
+    emailNotifications: bool = True
+    alertThreshold: Optional[float] = Field(None, description="Power threshold in Watts (W) that will trigger alerts when exceeded")
+    refreshInterval: Optional[int] = Field(30, description="Dashboard refresh interval in seconds")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
 
-
-    #
-    # id: '5',
-    # deviceId: '4',
-    # deviceName: 'Kitchen Appliances',
-    # type: 'info',
-    # message: 'Regular maintenance check completed',
-    # timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
-    # resolved: true,
 
     # class Config:
     #     validate_by_name = True
@@ -72,3 +71,4 @@ class AlertResponse(Alert):
 #     message: str
 #     device_id: Optional[PyObjectId]
 #     timestamp: datetime = Field(default_factory=datetime.utcnow)
+

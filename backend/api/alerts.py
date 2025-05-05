@@ -1,51 +1,91 @@
-from calendar import month_abbr
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, HTTPException, Query, Path
 from datetime import datetime
-from typing import List, Optional
-
 from bson import ObjectId
-from fastapi import Query
 
 from api.base import BaseCRUDAPI
-from models.models import Device, Alert, AlertResponse
-
-from fastapi import Query
+from models.models import Device, Alert
+from constants import ALERT_COLLECTION_NAME, DEVICE_COLLECTION_NAME
+from core.sync_database import db
 
 
 class AlertsAPI(BaseCRUDAPI[Alert]):
     def __init__(self):
-        super().__init__(Alert, "alerts")
-
-    def setup_routes(self):
-        super().setup_routes()
-        self.router.get("/", response_model=List[AlertResponse])(self.get_records_within_timeframe)
-
-
-
-    async def get_enriched_alerts(self, doc):
-        device: Device = await self.db.db["devices"].find_one({"_id": doc["device_id"]})
-        # Always set device_name, even if device is not found
-        doc["device_name"] = device.get("name") if device else None
-        # Always set timestamp, fallback to None if start_time missing
-        doc["timestamp"] = doc.get("start_time")
-        doc["id"] = doc.get("_id")
-        return doc
-
-    async def get_records_within_timeframe(
-            self,
-            start_time: Optional[str] = Query(None),
-            end_time: Optional[str] = Query(None),
-            device_id: Optional[str] = Query(None),
-    ):
-        query = {}
-        if start_time or end_time:
-            query["start_time"] = {}
-            if start_time:
-                query["start_time"]["$gte"] = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-            if end_time:
-                query["start_time"]["$lte"] = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+        super().__init__(Alert, ALERT_COLLECTION_NAME)
+        
+        @self.router.get("/", response_model=List[Alert])
+        async def get_alerts(
+            resolved: bool = False,
+            severity: Optional[str] = None,
+            device_id: Optional[str] = None,
+            limit: int = 100
+        ):
+            query = {"resolved": resolved}
+            
+            if severity:
+                query["severity"] = severity
+                
             if device_id:
                 query["device_id"] = ObjectId(device_id)
-        cursor = self.db.db[self.collection_name].find(query)
-        return [AlertResponse(**await self.get_enriched_alerts(doc)) async for doc in cursor]
+                
+            alerts = []
+            cursor = db[ALERT_COLLECTION_NAME].find(query).sort("timestamp", -1).limit(limit)
+            
+            for doc in cursor:
+                alerts.append(Alert.model_validate(doc))
+                
+            return alerts
+        
+        @self.router.put("/{alert_id}/resolve/", response_model=Alert)
+        async def resolve_alert(alert_id: str = Path(...)):
+            alert_obj_id = ObjectId(alert_id)
+            alert = db[ALERT_COLLECTION_NAME].find_one({"_id": alert_obj_id})
+            
+            if not alert:
+                raise HTTPException(status_code=404, detail=f"Alert with ID {alert_id} not found")
+                
+            update_data = {
+                "resolved": True,
+                "resolved_at": datetime.utcnow()
+            }
+            
+            result = db[ALERT_COLLECTION_NAME].update_one(
+                {"_id": alert_obj_id},
+                {"$set": update_data}
+            )
+            
+            if result.modified_count == 0:
+                raise HTTPException(status_code=400, detail="Failed to resolve alert")
+                
+            updated_alert = db[ALERT_COLLECTION_NAME].find_one({"_id": alert_obj_id})
+            return Alert.model_validate(updated_alert)
 
+    async def create_power_threshold_alert(self, device_id: str, power_value: float, threshold: float) -> Alert:
+        """Create a new power threshold alert"""
+        device = db[DEVICE_COLLECTION_NAME].find_one({"_id": ObjectId(device_id)})
+        if not device:
+            raise HTTPException(status_code=404, detail=f"Device with ID {device_id} not found")
+            
+        device_name = device.get("name", "Unknown Device")
+        severity = "critical" if power_value > threshold * 1.5 else "warning"
+        
+        alert_data = {
+            "device_id": ObjectId(device_id),
+            "timestamp": datetime.utcnow(),
+            "severity": severity,
+            "message": f"Power consumption exceeded threshold: {power_value}W > {threshold}W on device '{device_name}'",
+            "metric": "power",
+            "value": power_value,
+            "threshold": threshold,
+            "resolved": False
+        }
+        
+        alert = Alert.model_validate(alert_data)
+        result = db[ALERT_COLLECTION_NAME].insert_one(alert.model_dump(by_alias=True))
+        
+        if not result.inserted_id:
+            raise HTTPException(status_code=400, detail="Failed to create alert")
+            
+        alert.id = result.inserted_id
+        return alert
 

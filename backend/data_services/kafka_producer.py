@@ -7,16 +7,14 @@ import random
 
 from confluent_kafka import Producer
 
-KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'readings')
-KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9093')
-
-DEVICE_IDS = ["6817d8c04173230e40ca2bb2", "6817d8c84173230e40ca2bb3"]  # Example device IDs
+KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9092')
+KAFKA_TOPIC = 'readings'
+DEVICE_IDS = ["smart-meter-001", "smart-plug-002", "smart-meter-003"]  # Example device IDs
 import socket
 
 conf = {'bootstrap.servers': KAFKA_BOOTSTRAP_SERVER,
         'client.id': socket.gethostname()}
 producer = Producer(conf)
-print(conf)
 
 
 def run_producer():
@@ -25,11 +23,8 @@ def run_producer():
     try:
         while True:
             for device_id in DEVICE_IDS:
-                reading = {"device_id": device_id,
-                           "timestamp": datetime.datetime.utcnow() - datetime.timedelta(days=random.randint(0, 365),
-                                                                                        hours=random.randint(0, 23),
-                                                                                        minutes=random.randint(0, 59),
-                                                                                        seconds=random.randint(0, 59)),
+                reading = {"device_id": "681012976bb14e7b76a00631",
+                           "timestamp": datetime.datetime.utcnow(),
                            "power": random.uniform(0, 100), }
 
                 producer.produce(KAFKA_TOPIC, json.dumps(reading, default=str))  # Send as bytes

@@ -11,6 +11,25 @@ from app.schemas.device import AlertResponse, AlertCreate
 router = APIRouter()
 alert_service = AlertService()
 
+@router.get("", response_model=List[AlertResponse])
+def get_all_alerts(
+    resolved: Optional[bool] = None,
+    severity: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=1000),
+    skip: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """Get all alerts with optional filtering and pagination."""
+    query = db.query(Alert)
+    
+    if resolved is not None:
+        query = query.filter(Alert.is_resolved == resolved)
+    if severity:
+        query = query.filter(Alert.severity.ilike(f"%{severity}%"))
+    
+    alerts = query.order_by(Alert.timestamp.desc()).offset(skip).limit(limit).all()
+    return alerts
+
 @router.post("/{device_id}", response_model=AlertResponse)
 def create_alert(
     device_id: int,

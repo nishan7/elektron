@@ -8,6 +8,9 @@ from typing import List, Dict, Any, Optional
 import json
 from dotenv import load_dotenv
 
+# Import the settings service
+from app.services.settings_service import settings_service
+
 load_dotenv()
 
 class AlertService:
@@ -18,18 +21,37 @@ class AlertService:
         self.smtp_password = os.getenv("SMTP_PASSWORD")
         self.slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL")
         
-        # Alert thresholds
-        self.power_spike_threshold = float(os.getenv("POWER_SPIKE_THRESHOLD", "2000"))
+        # Thresholds from environment variables (can serve as defaults or fallbacks)
+        # self.power_spike_threshold = float(os.getenv("POWER_SPIKE_THRESHOLD", "2000")) # Replaced by settings service
         self.voltage_fluctuation_threshold = float(os.getenv("VOLTAGE_FLUCTUATION_THRESHOLD", "10"))
         self.temperature_threshold = float(os.getenv("TEMPERATURE_THRESHOLD", "60"))
     
     def check_power_spike(self, power: float, device_name: str) -> Optional[Dict[str, Any]]:
-        """Check if power consumption exceeds threshold"""
-        if power > self.power_spike_threshold:
+        """Check if power consumption exceeds the threshold from settings."""
+        current_settings = settings_service.get_settings()
+        alert_threshold = current_settings.get("alertThreshold")
+        
+        # If no threshold set, don't trigger alerts
+        if alert_threshold is None:
+            return None
+            
+        # Convert to float for safety
+        alert_threshold = float(alert_threshold)
+        
+        if power > alert_threshold:
+            # Determine severity based on how much the threshold is exceeded
+            severity = "info"
+            if power > alert_threshold * 1.5:
+                severity = "critical"
+            elif power > alert_threshold * 1.2:
+                severity = "warning"
+                
             return {
-                'alert_type': 'power_spike',
-                'severity': 'warning',
-                'message': f"Power spike detected for device {device_name}: {power}W (threshold: {self.power_spike_threshold}W)"
+                'alert_type': 'power_threshold_exceeded',
+                'severity': severity,
+                'message': f"Power consumption for device {device_name} exceeded threshold: {power:.2f}W (threshold: {alert_threshold:.2f}W)",
+                'power_value': power,
+                'threshold_value': alert_threshold
             }
         return None
     
