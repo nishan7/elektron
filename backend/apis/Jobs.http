@@ -208,3 +208,8 @@ Content-Type: application/json
 }
 
 
+
+
+### Get last month's power consumption summary grouped by device type
+GET http://localhost:8000/api/record/last-month-summary
+Content-Type: application/json

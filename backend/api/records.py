@@ -1,3 +1,4 @@
+import random
 from typing import List, Optional
 
 from bson import ObjectId
@@ -24,6 +25,7 @@ class RecordsAPI(BaseCRUDAPI[Record]):
         self.router.get("/monthly-summary")(self.get_monthly_summary)
         self.router.get("/hourly-summary")(self.get_hourly_summary)
         self.router.get("/daily-summary")(self.get_daily_summary)
+        self.router.get("/last-month-summary")(self.get_last_month_summary_by_type)
         super().setup_routes()
 
 
@@ -146,7 +148,7 @@ class RecordsAPI(BaseCRUDAPI[Record]):
             result.append({
                 "hour": f"{hour:02}:00",
                 "consumption": doc["consumption"],
-                "cost": doc["cost"]
+                "cost": int(doc["consumption"] * 0.30)
             })
         return result
 
@@ -191,6 +193,56 @@ class RecordsAPI(BaseCRUDAPI[Record]):
             result.append({
                 "day": days[i - 1],
                 "consumption": doc["consumption"],
-                "cost": doc["cost"]
+                "cost": int(doc["consumption"] * 0.30)
+            })
+        return result
+
+    import random
+
+    DEVICE_COLORS = [
+        "#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#8dd1e1", "#a4de6c", "#d0ed57", "#d62728"
+    ]
+
+    async def get_last_month_summary_by_type(self):
+        from datetime import datetime, timedelta
+        from pymongo import DESCENDING
+
+        now = datetime.utcnow()
+        first_day_this_month = datetime(now.year, now.month, 1)
+        last_month_end = first_day_this_month - timedelta(seconds=1)
+        last_month_start = datetime(last_month_end.year, last_month_end.month, 1)
+
+        # Lookup device info to get device type
+        pipeline = [
+            {"$match": {
+                "timestamp": {"$gte": last_month_start, "$lte": last_month_end}
+            }},
+            {
+                "$lookup": {
+                    "from": "devices",
+                    "localField": "device_id",
+                    "foreignField": "_id",
+                    "as": "device_info"
+                }
+            },
+            {"$unwind": "$device_info"},
+            {
+                "$group": {
+                    "_id": "$device_info.type",
+                    "value": {"$sum": "$power"}
+                }
+            }
+        ]
+
+        cursor = self.db.db[self.collection_name].aggregate(pipeline)
+        result = []
+        used_colors = set()
+        for doc in await cursor.to_list(length=None):
+            color = random.choice([c for c in self.DEVICE_COLORS if c not in used_colors] or self.DEVICE_COLORS)
+            used_colors.add(color)
+            result.append({
+                "name": doc["_id"],
+                "value": int(doc["value"]),
+                "color": color
             })
         return result

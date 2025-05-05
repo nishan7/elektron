@@ -362,7 +362,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
                 Peak Power
               </Typography>
               <Typography variant="h4">
-                {Math.max(...data.map(d => d.consumption))} W
+                {Math.round(Math.max(...data.map(d => d.consumption)))} W
               </Typography>
             </CardContent>
           </Card>
