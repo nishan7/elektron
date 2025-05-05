@@ -1,14 +1,14 @@
 import threading
 import logging
 
-# 设置日志记录
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Simple in-memory store for settings (Not persistent across restarts)
 # In a real application, use a database or configuration file
 _settings = {
-    "alertThreshold": 12,  # 设置为与UI显示相同的默认值
+    "alertThreshold": 12,  # Set to the same default value as displayed in the UI
     "emailNotifications": True,
     "refreshInterval": 30
 }

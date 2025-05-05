@@ -3,48 +3,48 @@ import paho.mqtt.client as mqtt
 import logging
 from services.records import update_record # Assuming update_record saves the record
 from app.services.alerts import AlertService # Import AlertService (adjust path if needed)
-from models.models import Alert # 修正：使用正确的Alert模型
-from core.sync_database import db # 修正：使用同步数据库
+from models.models import Alert # Fix: Use the correct Alert model
+from core.sync_database import db # Fix: Use the synchronous database
 from constants import ALERT_COLLECTION_NAME # Import collection name
 import json
 from pydantic import ValidationError
 from datetime import datetime, timezone # Import datetime
-from bson import ObjectId # 添加 ObjectId 导入
+from bson import ObjectId # Add ObjectId import
 
-# 配置日志
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 从环境变量获取 MQTT Broker 配置，与 docker-compose.yml 中定义的一致
-MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "localhost") # 默认值用于本地测试
+# Get MQTT Broker configuration from environment variables, consistent with docker-compose.yml definitions
+MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "localhost") # Default value for local testing
 MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", 1883))
 MQTT_KEEPALIVE = 60
 
-# --- 定义主题 ---
-# 这是一个示例主题结构，您需要根据实际情况调整
-# 例如，设备使用 'elektron/device/{device_id}/data' 来发布数据
-DEVICE_DATA_TOPIC = "elektron/device/+/data" # '+' 是单层通配符
+# --- Define topics ---
+# This is an example topic structure, adjust according to your actual situation
+# For example, devices use 'elektron/device/{device_id}/data' to publish data
+DEVICE_DATA_TOPIC = "elektron/device/+/data" # '+' is a single-level wildcard
 
 # Instantiate AlertService
 alert_service = AlertService()
 
 def on_connect(client, userdata, flags, rc):
-    """MQTT 连接回调函数"""
+    """MQTT connection callback function"""
     if rc == 0:
         logger.info(f"Successfully connected to MQTT Broker at {MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}")
-        # 连接成功后订阅主题
+        # Subscribe to topics after successful connection
         client.subscribe(DEVICE_DATA_TOPIC)
         logger.info(f"Subscribed to topic: {DEVICE_DATA_TOPIC}")
     else:
         logger.error(f"Failed to connect to MQTT Broker, return code {rc}")
 
 def on_disconnect(client, userdata, rc):
-    """MQTT 断开连接回调函数"""
+    """MQTT disconnect callback function"""
     logger.warning(f"Disconnected from MQTT Broker with result code {rc}")
-    # 可以在这里添加重连逻辑 if rc != 0: client.reconnect()
+    # Reconnection logic can be added here if rc != 0: client.reconnect()
 
 def on_message(client, userdata, msg):
-    """MQTT 消息接收回调函数"""
+    """MQTT message received callback function"""
     topic = msg.topic
     payload = msg.payload.decode("utf-8")
     logger.info(f"Received message on topic '{topic}': {payload}")
@@ -60,7 +60,7 @@ def on_message(client, userdata, msg):
         data = json.loads(payload)
         logger.info(f"Parsed message data: {data}")
 
-        # --- 数据处理逻辑 ---
+        # --- Data processing logic ---
         # Add device_id from topic if not in payload (adjust based on actual data)
         if "device_id" not in data:
             data["device_id"] = device_id_str
@@ -88,7 +88,7 @@ def on_message(client, userdata, msg):
                 
                 logger.info(f"Checking power threshold for device {device_name}, power value: {power_value}W")
                 
-                # 检索当前设置的阈值，确认是否应该触发警报
+                # Retrieve the currently set threshold to determine if an alert should be triggered
                 from app.services.settings_service import settings_service
                 current_settings = settings_service.get_settings()
                 alert_threshold = current_settings.get("alertThreshold")
@@ -101,9 +101,9 @@ def on_message(client, userdata, msg):
                     
                     # 3. Create and save the alert to the database
                     try:
-                        # 确保我们有正确的Alert模型
+                        # Ensure we have the correct Alert model
                         alert_data = {
-                            "device_id": ObjectId(device_id_str),  # 确保这是一个ObjectId
+                            "device_id": ObjectId(device_id_str),  # Ensure this is an ObjectId
                             "timestamp": datetime.now(timezone.utc),
                             "severity": power_alert_info.get("severity", "warning"),
                             "message": power_alert_info.get("message", "Power threshold exceeded."),
@@ -113,18 +113,18 @@ def on_message(client, userdata, msg):
                             "resolved": False
                         }
                         
-                        # 创建Alert实例
+                        # Create Alert instance
                         alert_doc = Alert(**alert_data)
                         
-                        # 转换为字典用于数据库插入
+                        # Convert to dictionary for database insertion
                         alert_dict = alert_doc.model_dump(by_alias=True)
                         logger.info(f"Prepared alert for saving: {alert_dict}")
                         
-                        # 插入到数据库
+                        # Insert into the database
                         insert_result = db[ALERT_COLLECTION_NAME].insert_one(alert_dict)
                         logger.info(f"Saved alert to DB with ID: {insert_result.inserted_id}")
                     
-                        # 可选：发送通知（例如，电子邮件/Slack）
+                        # Optional: Send notifications (e.g., email/Slack)
                         try:
                             notification_result = alert_service.process_alert(power_alert_info, ["email", "slack"])
                             logger.info(f"Notification result: {notification_result}")
@@ -152,39 +152,39 @@ def on_message(client, userdata, msg):
 
 
 def create_mqtt_client():
-    """创建并配置 MQTT 客户端"""
+    """Create and configure the MQTT client"""
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
 
-    # 设置遗嘱消息 (可选)
+    # Set Last Will and Testament message (optional)
     # client.will_set("elektron/status", payload="backend_offline", qos=1, retain=True)
 
-    # 添加认证 (如果您的 Broker 需要)
+    # Add authentication (if your Broker requires it)
     # client.username_pw_set(username="your_username", password="your_password")
 
     try:
         client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, MQTT_KEEPALIVE)
     except Exception as e:
         logger.exception(f"Could not connect to MQTT Broker: {e}")
-        # 根据需要处理连接失败的情况，例如退出应用或稍后重试
+        # Handle connection failure as needed, e.g., exit the app or retry later
 
     return client
 
-# 可以在这里添加一个启动函数，供 main.py 调用
+# A start function can be added here to be called by main.py
 def start_mqtt_loop():
     client = create_mqtt_client()
-    # client.loop_forever() # 阻塞式循环，会阻塞主线程
-    client.loop_start() # 非阻塞式循环，在后台线程中运行
+    # client.loop_forever() # Blocking loop, will block the main thread
+    client.loop_start() # Non-blocking loop, runs in a background thread
     logger.info("MQTT client loop started in background thread.")
     return client
 
 if __name__ == '__main__':
-    # 用于单独测试此模块
+    # For testing this module independently
     logger.info("Starting MQTT client for testing...")
     client = start_mqtt_loop()
-    # 让主线程保持运行以进行测试
+    # Keep the main thread running for testing
     import time
     try:
         while True:
