@@ -1,0 +1,14 @@
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install required packages
+RUN pip install --no-cache-dir requests paho-mqtt
+
+# Copy the utils directory into the container (volume mount will overwrite this, but good practice)
+COPY ./utils /app/utils
+
+# Command to run the script when the container launches
+CMD ["python", "/app/utils/plug_power.py"] 
