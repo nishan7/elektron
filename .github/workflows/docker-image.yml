@@ -37,6 +37,7 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/elektron-frontend:latest
 
+
 #    - name: Deploy to EC2
 #      uses: appleboy/ssh-action@v0.1.10
 #      with:
