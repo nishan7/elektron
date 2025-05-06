@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenRouter API Direct Test</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="password"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        .response-area {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-wrap; /* Preserve formatting */
+            word-wrap: break-word; /* Break long words */
+        }
+        h2 { color: #007bff; }
+        .chat-bubble {
+            padding: 10px;
+            border-radius: 7px;
+            margin-bottom: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-bubble {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto; /* Align to the right */
+            text-align: right;
+        }
+        .ai-bubble {
+            background-color: #e9e9eb;
+            color: #333;
+            margin-right: auto; /* Align to the left */
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>OpenRouter API Direct Test</h2>
+
+        <label for="apiKey">OpenRouter API Key:</label>
+        <input type="password" id="apiKey" placeholder="Enter your OpenRouter API Key (e.g., sk-or-...)">
+
+        <label for="modelId">Model ID:</label>
+        <input type="text" id="modelId" placeholder="Enter Model ID (e.g., mistralai/mistral-7b-instruct:free, google/gemini-flash-1.5)">
+
+        <label for="userMessage">Your Message:</label>
+        <textarea id="userMessage" placeholder="Type your message here..."></textarea>
+
+        <button onclick="sendMessage()">Send Message</button>
+
+        <h3>Conversation:</h3>
+        <div id="chatHistory" class="response-area" style="min-height: 100px; max-height: 300px; overflow-y: auto;">
+            <!-- Chat messages will appear here -->
+        </div>
+
+        <h3>Raw API Response:</h3>
+        <div id="apiResponse" class="response-area">
+            <!-- API response will appear here -->
+        </div>
+    </div>
+
+    <script>
+        const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
+        let conversationHistory = []; // To store messages for context
+
+        async function sendMessage() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const modelId = document.getElementById('modelId').value.trim();
+            const userMessageText = document.getElementById('userMessage').value.trim();
+            const chatHistoryDiv = document.getElementById('chatHistory');
+            const apiResponseDiv = document.getElementById('apiResponse');
+
+            if (!apiKey) {
+                apiResponseDiv.textContent = 'Error: API Key is required.';
+                alert('API Key is required.');
+                return;
+            }
+            if (!modelId) {
+                apiResponseDiv.textContent = 'Error: Model ID is required.';
+                alert('Model ID is required.');
+                return;
+            }
+            if (!userMessageText) {
+                apiResponseDiv.textContent = 'Error: Message is required.';
+                alert('Message is required.');
+                return;
+            }
+
+            // Add user message to UI
+            appendMessageToChat('user', userMessageText);
+            conversationHistory.push({ role: "user", content: userMessageText });
+
+            apiResponseDiv.textContent = 'Sending request...';
+
+            try {
+                const response = await fetch(openRouterEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin, // Optional, but good practice
+                        'X-Title': 'Elektron Dashboard Test Page' // Optional
+                    },
+                    body: JSON.stringify({
+                        model: modelId,
+                        messages: conversationHistory, // Send the whole conversation history
+                        // stream: false // Set to true if you want to handle streaming
+                    })
+                });
+
+                const responseData = await response.json();
+                apiResponseDiv.textContent = JSON.stringify(responseData, null, 2);
+
+                if (response.ok) {
+                    if (responseData.choices && responseData.choices.length > 0 && responseData.choices[0].message) {
+                        const aiMessageText = responseData.choices[0].message.content;
+                        appendMessageToChat('ai', aiMessageText);
+                        conversationHistory.push({ role: "assistant", content: aiMessageText });
+                    } else {
+                        appendMessageToChat('ai', 'AI response format unexpected. Check Raw API Response.');
+                    }
+                } else {
+                    const errorDetail = responseData.error ? responseData.error.message : JSON.stringify(responseData);
+                    appendMessageToChat('ai', `Error from API: ${response.status} - ${errorDetail}`);
+                }
+
+            } catch (error) {
+                apiResponseDiv.textContent = `Network or other error: ${error.message}`;
+                appendMessageToChat('ai', `Error: ${error.message}`);
+                console.error("API Call Error:", error);
+            }
+            document.getElementById('userMessage').value = ''; // Clear input field
+        }
+
+        function appendMessageToChat(sender, text) {
+            const chatHistoryDiv = document.getElementById('chatHistory');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-bubble');
+            messageDiv.classList.add(sender === 'user' ? 'user-bubble' : 'ai-bubble');
+            messageDiv.textContent = text;
+            chatHistoryDiv.appendChild(messageDiv);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight; // Auto-scroll to bottom
+        }
+    </script>
+</body>
+</html> 

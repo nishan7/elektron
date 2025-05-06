@@ -19,6 +19,9 @@ import config from '../config';
 // Components
 import PowerConsumptionChart from '../components/PowerConsumptionChart';
 import DeviceAnalytics from '../components/DeviceAnalytics';
+import HistoricalTrendsChart from '../components/HistoricalTrendsChart';
+import UsageComparisonChart from '../components/UsageComparisonChart';
+import LivePowerChart from '../components/LivePowerChart';
 
 // Sample devices data
 const sampleDevices = [
@@ -117,20 +120,44 @@ function Analytics() {
               onChange={handleTabChange}
               indicatorColor="primary"
               textColor="primary"
+              variant="scrollable"
+              scrollButtons="auto"
               sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
             >
+              <Tab label="Real-time" />
               <Tab label="Power Consumption" />
-              <Tab label="Device Analytics" />
+              <Tab label="Historical Trends" />
+              <Tab label="Usage Comparison" />
+              <Tab label="Device Details" />
             </Tabs>
           </Grid>
 
           <Grid item xs={12}>
-            {tabValue === 0 ? (
+            {tabValue === 0 && (
+              <LivePowerChart
+                selectedDevice={selectedDevice}
+                useSampleData={useSampleData}
+              />
+            )}
+            {tabValue === 1 && (
               <PowerConsumptionChart
                 deviceId={selectedDevice}
                 useSampleData={useSampleData}
               />
-            ) : (
+            )}
+            {tabValue === 2 && (
+              <HistoricalTrendsChart
+                deviceId={selectedDevice}
+                useSampleData={useSampleData}
+              />
+            )}
+            {tabValue === 3 && (
+              <UsageComparisonChart
+                deviceId={selectedDevice}
+                useSampleData={useSampleData}
+              />
+            )}
+            {tabValue === 4 && (
               <DeviceAnalytics
                 deviceId={selectedDevice}
                 useSampleData={useSampleData}

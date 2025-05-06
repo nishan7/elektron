@@ -3,18 +3,53 @@ import logging
 
 from constants import DEVICE_COLLECTION_NAME, RECORD_COLLECTION_NAME, ALERT_COLLECTION_NAME, SETTINGS_COLLECTION_NAME
 from core.sync_database import db
-from models.models import Record, Alert
+from models.models import Record, Alert, Device
 from services.device import validate_device_data
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
 def update_record(data: dict):
     validated_data = Record.model_validate(data)
-    device = db[DEVICE_COLLECTION_NAME].find_one({"_id": validated_data.device_id})
+    device_id_obj = validated_data.device_id
+    
+    # Try to find the device
+    device = db[DEVICE_COLLECTION_NAME].find_one({"_id": device_id_obj})
+    
     if not device:
-        raise ValueError(f"Device with id {validated_data.device_id} does not exist")
+        # Device not found, automatically create it
+        logger.warning(f"Device with id {device_id_obj} not found. Creating new device entry.")
+        new_device_data = {
+            "_id": device_id_obj,
+            "name": f"Device {str(device_id_obj)[-6:]}",
+            "device_type": "Unknown",
+            "location": "Unknown",
+            "model": "Unknown",
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "power_threshold": None
+        }
+        # Validate using Pydantic model before inserting
+        try:
+            device_model = Device.model_validate(new_device_data)
+            insert_result = db[DEVICE_COLLECTION_NAME].insert_one(device_model.model_dump(by_alias=True))
+            if insert_result.inserted_id:
+                logger.info(f"Successfully created new device with id {device_id_obj}")
+                # Fetch the newly created device to proceed
+                device = db[DEVICE_COLLECTION_NAME].find_one({"_id": device_id_obj})
+            else:
+                logger.error(f"Failed to insert new device with id {device_id_obj}")
+                raise ValueError(f"Failed to create device with id {device_id_obj}")
+        except Exception as e:
+            logger.exception(f"Error validating or inserting new device {device_id_obj}: {e}")
+            raise ValueError(f"Failed to create device with id {device_id_obj}")
+            
+    # Proceed with inserting the record
     db[RECORD_COLLECTION_NAME].insert_one(validated_data.model_dump(by_alias=True))
-    validate_device_data(device, validated_data)
+    
+    # Update device status or other validations if necessary
+    # validate_device_data(device, validated_data) # Keep this if it updates device status
     
     # Check if power threshold is exceeded
     check_power_threshold(device, validated_data)

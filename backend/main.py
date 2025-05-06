@@ -7,6 +7,7 @@ from api.device import DeviceAPI
 from api.records import RecordsAPI
 from api.alerts import AlertsAPI
 from api.settings import SettingsAPI
+from api.ai import router as ai_router
 from core.database import db
 
 
@@ -66,6 +67,7 @@ app.include_router(device_api.router, prefix="/api/device", tags=["Device"])
 app.include_router(record_api.router, prefix="/api/record", tags=["Record"])
 app.include_router(alerts_api.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(settings_api.router, prefix="/api/settings", tags=["Settings"])
+app.include_router(ai_router, prefix="/api/ai", tags=["AI"])
 # app.include_router(gig_api.router, prefix="/api/gig", tags=["Gigs"])
 # app.include_router(volunteer_api.router, prefix="/api/volunteer", tags=["Volunteers"])
 # app.include_router(application_api.router, prefix="/api/application", tags=["Application"])

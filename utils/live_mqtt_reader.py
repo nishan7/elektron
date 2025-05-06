@@ -64,6 +64,7 @@ def on_message(client, userdata, msg):
                     "device_id": device_id,
                     "power": data["power"],
                     "timestamp": data["timestamp"],
+                    "local_time": datetime.now().strftime("%H:%M:%S")
                 }
                 
                 live_data[device_id].append(data_point)

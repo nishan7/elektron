@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -10,6 +10,8 @@ import {
   Select,
   MenuItem,
   Grid,
+  Button,
+  IconButton,
 } from '@mui/material';
 import {
   LineChart,
@@ -21,6 +23,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 // Real-time Power Chart Component
 function LivePowerChart() {
@@ -30,54 +33,65 @@ function LivePowerChart() {
   const [selectedDevice, setSelectedDevice] = useState('');
   const [deviceOptions, setDeviceOptions] = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  
+  // Load real-time data function as a useCallback to prevent unnecessary recreations
+  const loadLiveData = useCallback(async () => {
+    try {
+      // Add cache busting parameter to prevent browser caching
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/live_data.json?nocache=${timestamp}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log('Live data file not found, it may not have been created yet');
+          setLoading(false);
+          return;
+        }
+        throw new Error(`Failed to get real-time data: ${response.statusText}`);
+      }
+      
+      const liveData = await response.json();
+      console.log('Retrieved real-time data:', liveData);
+      
+      // Update device options list
+      const devices = Object.keys(liveData);
+      setDeviceOptions(devices);
+      
+      // If no device is selected but device data exists, select the first one
+      if (!selectedDevice && devices.length > 0) {
+        setSelectedDevice(devices[0]);
+      }
+      
+      // Update the last update timestamp
+      setLastUpdate(new Date());
+      
+      // Set data with a new object reference to trigger re-renders
+      setData({...liveData});
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading real-time data:', error);
+      setError('Failed to load real-time data. Please ensure the real-time data collection script is running');
+      setLoading(false);
+    }
+  }, [selectedDevice]);
+  
+  // Manual refresh handler
+  const handleRefresh = () => {
+    loadLiveData();
+  };
   
   // Load real-time data
   useEffect(() => {
-    const loadLiveData = async () => {
-      try {
-        // Get real-time data file
-        const response = await fetch('/live_data.json');
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            // File may not yet be created
-            console.log('Live data file not found, it may not have been created yet');
-            setLoading(false);
-            return;
-          }
-          throw new Error(`Failed to get real-time data: ${response.statusText}`);
-        }
-        
-        const liveData = await response.json();
-        console.log('Retrieved real-time data:', liveData);
-        
-        // Update device options list
-        const devices = Object.keys(liveData);
-        setDeviceOptions(devices);
-        
-        // If no device is selected but device data exists, select the first one
-        if (!selectedDevice && devices.length > 0) {
-          setSelectedDevice(devices[0]);
-        }
-        
-        setData(liveData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading real-time data:', error);
-        setError('Failed to load real-time data. Please ensure the real-time data collection script is running');
-        setLoading(false);
-      }
-    };
-    
     // Initial load
     loadLiveData();
     
-    // Set timed refresh
-    const intervalId = setInterval(loadLiveData, 15000); // Refresh every 15 seconds
+    // Set timed refresh - update more frequently
+    const intervalId = setInterval(loadLiveData, 30000); // Refresh every 3 seconds for more real-time feel
     
     // Clean up when component unmounts
     return () => clearInterval(intervalId);
-  }, [selectedDevice]);
+  }, [loadLiveData]);
   
   // When selected device or data changes, update chart data
   useEffect(() => {
@@ -132,7 +146,15 @@ function LivePowerChart() {
   return (
     <Paper sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6">Real-time Power Monitoring</Typography>
+        <Box display="flex" alignItems="center">
+          <Typography variant="h6" mr={1}>Real-time Power Monitoring</Typography>
+          <IconButton color="primary" onClick={handleRefresh} size="small">
+            <RefreshIcon />
+          </IconButton>
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+            Last updated: {lastUpdate.toLocaleTimeString()}
+          </Typography>
+        </Box>
         
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel>Device</InputLabel>
