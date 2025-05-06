@@ -20,3 +20,6 @@ schedule
 pydantic-mongo
 motor
 paho-mqtt # Added MQTT client library
+
+# Add httpx for making async API calls to LLMs
+httpx
