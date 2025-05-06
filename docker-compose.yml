@@ -18,11 +18,9 @@ services:
       - MONGO_URI=mongodb://root:example@mongo:27017/elektron?authSource=admin
       - MQTT_BROKER_HOST=mqtt
       - MQTT_BROKER_PORT=1883
-    depends_on:
-      - db
-      - redis
-      - kafka
-      - mqtt
+      - LLM_API_KEY=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
+      - LLM_API_ENDPOINT=https://openrouter.ai/api/v1
+      - LLM_MODEL="qwen/qwen3-30b-a3b:free"
 
 
   frontend:
