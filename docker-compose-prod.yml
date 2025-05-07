@@ -10,7 +10,7 @@ services:
 
   backend:
     image: nishanpaudel/elektron-backend
-    command: [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload" ]
+    command: [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" , "--workers", "2" ]
     ports:
       - "8000:8000"
     volumes:
