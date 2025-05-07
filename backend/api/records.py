@@ -255,6 +255,7 @@ class RecordsAPI(BaseCRUDAPI[Record]):
         start_time: str = Query(..., description="Start timestamp in ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)"),
         end_time: str = Query(..., description="End timestamp in ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)"),
         device_id: Optional[str] = Query(None, description="Optional device ID to filter by. 'all' or None for all devices."),
+        group_by: Optional[str] = Query(None, description="Optional field to group by when device_id is 'all' or None. E.g., 'name' or 'type'. Default is 'type'.")
     ):
         try:
             gte_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
@@ -275,16 +276,17 @@ class RecordsAPI(BaseCRUDAPI[Record]):
             # Group by specific device name when a single device is selected
             group_stage_id_expression = {"$ifNull": ["$device_info.name", "Unknown Device Name"]}
         else:
-            # Group by device name if type is missing, otherwise by type (for 'all' devices view)
-            # This prioritizes type if available, falls back to name, then Unknown
-            group_stage_id_expression = {
-                "$ifNull": [
-                    "$device_info.type", 
-                    {"$ifNull": ["$device_info.name", "Unknown"]} # Fallback to name if type is null
-                ]
-            } 
-            # If you ALWAYS want to group by name for the 'all' devices case, use this instead:
-            # group_stage_id_expression = {"$ifNull": ["$device_info.name", "Unknown Device Name"]}
+            if group_by == 'name':
+                # If frontend requests grouping by name for 'all' devices
+                group_stage_id_expression = {"$ifNull": ["$device_info.name", "Unknown Device Name"]}
+            else:
+                # Default behavior for 'all' devices: group by type, fallback to name
+                group_stage_id_expression = {
+                    "$ifNull": [
+                        "$device_info.type", 
+                        {"$ifNull": ["$device_info.name", "Unknown"]} # Fallback to name if type is null
+                    ]
+                }
 
         pipeline = [
             {"$match": match_conditions},

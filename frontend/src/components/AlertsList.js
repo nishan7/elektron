@@ -197,16 +197,6 @@ function AlertsList({ alerts, onAlertsChange }) {
                     </Typography>
                   </Box>
                 </Grid>
-                {alert.end_time && (
-                  <Grid item xs={12} sm={6}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <ScheduleIcon color="action" />
-                      <Typography variant="body2">
-                        Ended: {formatTimestamp(alert.end_time)}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                )}
                 <Grid item xs={12}>
                   <Typography variant="body2" color="textSecondary">
                     Details: {alert.description || alert.message || 'No additional details available.'}

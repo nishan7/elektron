@@ -30,6 +30,12 @@ const getLoadDistributionApiConfig = (timeRange, deviceId, startDateStr, endDate
     device_id: deviceId === 'all' ? undefined : deviceId,
     // You might add another param like 'group_by' if the backend supports different ways to categorize load
   };
+
+  // If 'all' devices are selected, specify grouping by name for the backend.
+  if (deviceId === 'all') {
+    params.group_by = 'name';
+  }
+
   // Remove undefined params
   Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
   return { endpoint, params };

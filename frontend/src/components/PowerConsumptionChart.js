@@ -253,7 +253,8 @@ function PowerConsumptionChart({ selectedDevice = 'all', selectedTimeRange }) {
           <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey={xAxisDataKey} />
-            <YAxis yAxisId="left" label={{ value: 'Power (W)', angle: -90, position: 'insideLeft' }} />
+            <YAxis yAxisId="left" />
+            <YAxis yAxisId="right" orientation="right" />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             <Line yAxisId="left" type="monotone" dataKey="consumption" strokeWidth={2} stroke={thresholds.critical ? "#1976d2" : "#8884d8" } name="Power Consumption" dot={{ r: 2 }} activeDot={{ r: 6 }}/>

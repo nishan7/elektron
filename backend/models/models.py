@@ -2,9 +2,8 @@ from datetime import datetime
 from typing import Optional
 
 from bson import ObjectId
-from pydantic import Field
+from pydantic import Field, BaseModel
 from pydantic_mongo import PydanticObjectId
-from pydantic import Field, validator
 from models.base import Base
 
 
@@ -81,3 +80,34 @@ class AlertResponse(Alert):
 #     message: str
 #     device_id: Optional[PyObjectId]
 #     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+# Nested model for Notification Settings
+class NotificationSettings(BaseModel):
+    email: bool = True
+    sms: bool = False
+    criticalAlerts: bool = True # Using camelCase to match input example
+
+# Nested model for Threshold Settings
+class ThresholdSettings(BaseModel):
+    powerAlert: Optional[float] = Field(None, alias="powerAlert") # W or kW? Assume W for now
+    costAlert: Optional[float] = Field(None, alias="costAlert") # Cost per hour? day?
+    criticalThreshold: Optional[float] = Field(None, alias="criticalThreshold") # Power? Cost?
+    dataRefreshInterval: Optional[int] = Field(30, alias="dataRefreshInterval") # Seconds
+    timeZone: Optional[str] = Field("UTC", alias="timeZone")
+
+# Main Settings model using nested models
+class Settings(Base): 
+    notifications: NotificationSettings = Field(default_factory=NotificationSettings)
+    thresholds: ThresholdSettings = Field(default_factory=ThresholdSettings)
+
+    class Config:
+        allow_population_by_field_name = True 
+        validate_assignment = True 
+        json_encoders = { 
+            ObjectId: str,
+            PydanticObjectId: str
+        }
+        # Keep aliases consistent with field names unless MongoDB needs snake_case
+        # If MongoDB stores camelCase, no by_alias needed just for outputting camelCase.
+        # If DB stores snake_case, add `alias_generator = to_camel`, `by_alias=True`.
+        # Assuming DB will store fields as named (camelCase here).
