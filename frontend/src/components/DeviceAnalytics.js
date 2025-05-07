@@ -39,7 +39,7 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
   const [insightsError, setInsightsError] = useState(null);
 
   const genAI = useMemo(() => {
-    const apiKey = process.env.REACT_APP_GEMINI_API_KEY | 'AIzaSyDqlpgkqFKsBKXOknT9oWvXF5QdNWyeTdg';
+    const apiKey = 'AIzaSyDqlpgkqFKsBKXOknT9oWvXF5QdNWyeTdg';
     if (!apiKey) { console.error("API Key not found."); setInsightsError("API Key is missing."); return null; }
     try { return new GoogleGenerativeAI(apiKey); }
     catch (error) { console.error("Error initializing GoogleGenerativeAI:", error); setInsightsError("Failed to initialize AI Client."); return null; }
