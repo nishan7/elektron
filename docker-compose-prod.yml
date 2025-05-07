@@ -1,12 +1,12 @@
 services:
   nginx:
     image: nginx:latest
-    container_name: bridgework-nginx
+    container_name: elektron-nginx
     restart: always
     ports:
       - "80:80"
     volumes:
-      - ./deployment/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
 
   backend:
     image: nishanpaudel/elektron-backend
