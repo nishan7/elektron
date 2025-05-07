@@ -20,6 +20,7 @@ class AlertsAPI(BaseCRUDAPI[Alert]):
         super().setup_routes()
         self.router.get("/", response_model=List[AlertResponse])(self.get_records_within_timeframe)
         self.router.post("/{alert_id}/resolve", response_model=AlertResponse)(self.resolve_alert)
+        self.router.post("/{alert_id}/resolve/", response_model=AlertResponse)(self.resolve_alert)
         print("AlertsAPI routes_setup (resolve feature, added /resolve endpoint)", flush=True)
 
     async def get_enriched_alerts(self, doc):

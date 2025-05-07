@@ -35,7 +35,9 @@ class RecordsAPI(BaseCRUDAPI[Record]):
         self.router.get("/load-distribution-period", summary="Get load distribution for a specified period and device.")(self.get_load_distribution_period)
         self.router.get("/load-distribution-period/", summary="Get load distribution for a specified period and device.")(self.get_load_distribution_period)
         self.router.get("/device-analytics-summary", summary="Get aggregated analytics for a device over a period.")(self.get_device_analytics_summary)
+        self.router.get("/device-analytics-summary/", summary="Get aggregated analytics for a device over a period.")(self.get_device_analytics_summary)
         self.router.get("/daily-trend-for-device", summary="Get daily consumption trend for a specific device over a period.")(self.get_daily_trend_for_device)
+        self.router.get("/daily-trend-for-device/", summary="Get daily consumption trend for a specific device over a period.")(self.get_daily_trend_for_device)
         super().setup_routes()
 
 
