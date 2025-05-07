@@ -1,4 +1,16 @@
 services:
+  nginx:
+    image: nginx:latest
+    container_name: bridgework-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./deployment/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+
   backend:
     image: nishanpaudel/elektron-backend
     command: [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload" ]
@@ -30,7 +42,7 @@ services:
   frontend:
     image: nishanpaudel/elektron-frontend
     ports:
-      - "80:80"
+      - "3000:80"
     volumes:
       - ./frontend:/app
       - /app/node_modules
