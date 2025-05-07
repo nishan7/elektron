@@ -127,10 +127,11 @@ class RecordsAPI(BaseCRUDAPI[Record]):
             if end_time:
                 match_stage["timestamp"]["$lte"] = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
 
-        if device_id and device_id.lower() != 'all': # Ensure device_id is not 'all' for this specific query part
+        if device_id and device_id.lower() != 'all':
             if ObjectId.is_valid(device_id):
                 match_stage["device_id"] = ObjectId(device_id)
-            # else: handle invalid ObjectId if necessary, or let other validation catch it
+            # else: handle invalid ObjectId if necessary
+            #   pass # Example placeholder for else block if needed
 
         pipeline = []
         if match_stage:

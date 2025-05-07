@@ -86,6 +86,7 @@ class NotificationSettings(BaseModel):
     email: bool = True
     sms: bool = False
     criticalAlerts: bool = True # Using camelCase to match input example
+    alertRecipientEmail: Optional[str] = None
 
 # Nested model for Threshold Settings
 class ThresholdSettings(BaseModel):
