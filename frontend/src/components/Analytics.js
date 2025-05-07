@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { config } from '../config';
+import { formatPower } from '../utils/formatting';
 
 function Analytics({ deviceId }) {
   const [loading, setLoading] = useState(true);
@@ -136,7 +137,7 @@ function Analytics({ deviceId }) {
                   <ListItem key={index}>
                     <ListItemText 
                       primary={`${new Date(stat.date).toLocaleDateString()}`}
-                      secondary={`Avg: ${stat.mean.toFixed(2)}W, Min: ${stat.min.toFixed(2)}W, Max: ${stat.max.toFixed(2)}W`}
+                      secondary={`Avg: ${formatPower(stat.mean, { decimalPlaces: 2 })}, Min: ${formatPower(stat.min, { decimalPlaces: 2 })}, Max: ${formatPower(stat.max, { decimalPlaces: 2 })}`}
                     />
                   </ListItem>
                 ))}
@@ -163,7 +164,7 @@ function Analytics({ deviceId }) {
                     </ListItemIcon>
                     <ListItemText
                       primary={`Anomaly detected at ${new Date(anomaly.timestamp).toLocaleString()}`}
-                      secondary={`Power: ${anomaly.power.toFixed(2)}W, Anomaly Score: ${anomaly.anomaly_score.toFixed(2)}`}
+                      secondary={`Power: ${formatPower(anomaly.power, { decimalPlaces: 2 })}, Anomaly Score: ${anomaly.anomaly_score.toFixed(2)}`}
                     />
                   </ListItem>
                   {index < anomalies.length - 1 && <Divider />}
@@ -217,4 +218,4 @@ function Analytics({ deviceId }) {
   );
 }
 
-export default Analytics; 
+export default Analytics;

@@ -40,7 +40,11 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    env_file:
+      - frontend/.env
+    # Temporarily set variable directly for testing - HIGHER priority than env_file
     environment:
+      - REACT_APP_GEMINI_API_KEY=AIzaSyDqlpgkqFKsBKXOknT9oWvXF5QdNWyeTdg
       - REACT_APP_API_URL=http://localhost:8000
     depends_on:
       - backend
