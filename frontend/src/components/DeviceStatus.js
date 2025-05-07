@@ -14,9 +14,10 @@ import {
 } from '@mui/icons-material';
 
 function DeviceStatus({ devices = [] }) {
-  console.log("[DeviceStatus] Component rendered/updated. Devices prop:", JSON.parse(JSON.stringify(devices)));
+  // console.log("[DeviceStatus] Component rendered/updated. Devices prop:", JSON.parse(JSON.stringify(devices)));
 
   const getHealthIcon = (healthStatus) => {
+    // Uses the healthStatus passed (which will be device.calculatedHealth)
     switch (healthStatus || 'unknown') {
       case 'good':
         return <CheckCircleIcon color="success" />;
@@ -30,6 +31,7 @@ function DeviceStatus({ devices = [] }) {
   };
 
   const getHealthChip = (healthStatus) => {
+    // Uses the healthStatus passed (which will be device.calculatedHealth)
     switch (healthStatus || 'unknown') {
       case 'good':
         return <Chip label="Healthy" color="success" size="small" />;
@@ -52,13 +54,17 @@ function DeviceStatus({ devices = [] }) {
         <ListItem
           key={device._id || device.id}
           divider
-          secondaryAction={getHealthChip(device.health)}
+          // MODIFIED: Use device.calculatedHealth for the chip
+          secondaryAction={getHealthChip(device.calculatedHealth)}
         >
           <ListItemIcon>
-            {getHealthIcon(device.health)}
+            {/* MODIFIED: Use device.calculatedHealth for the icon */}
+            {getHealthIcon(device.calculatedHealth)}
           </ListItemIcon>
           <ListItemText
             primary={device.name}
+            // MODIFIED: Optionally adjust secondary text if device.status is no longer the primary source of truth for display
+            // For now, keeping device.status for informational purposes, but calculatedHealth drives the chip/icon.
             secondary={`Type: ${device.type || 'N/A'} | Status: ${device.status || 'N/A'}`}
           />
         </ListItem>
