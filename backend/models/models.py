@@ -37,12 +37,21 @@ class Alert(Base):
     metric: str
     type: Optional[str] = 'warning'
     resolved: bool = False
+    device_name: Optional[str] = Field(None, alias="deviceName")
+    location: Optional[str] = Field(None, alias="location")
 
 class AlertResponse(Alert):
-    id: PydanticObjectId
-    device_name: str
+    id: PydanticObjectId = Field(alias="_id")
     timestamp: datetime
 
+    class Config:
+        allow_population_by_field_name = True
+        by_alias = True
+        json_encoders = {
+            ObjectId: str,
+            PydanticObjectId: str,
+            datetime: lambda dt: dt.isoformat()
+        }
 
     #
     # id: '5',

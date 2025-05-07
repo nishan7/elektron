@@ -120,7 +120,7 @@ const PowerAnalysisChart = ({ selectedDevice, selectedTimeRange }) => {
                 <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" tickFormatter={(value) => `$${value.toFixed(2)}`}/>
                 <Tooltip formatter={(value, name, props) => {
                     if (name === "Power (W)") return [formatPower(value), name];
-                    if (name === "Cost ($)") return [`$${Number(value).toFixed(4)}`, name];
+                    if (name === "Cost ($)") return [`$${Number(value).toFixed(2)}`, name];
                     return [value, name];
                 }}/>
                 <Legend />
