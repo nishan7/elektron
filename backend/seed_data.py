@@ -6,7 +6,7 @@ import random
 
 fake = Faker()
 
-MONGO_URI = "mongodb://root:example@localhost:27017/bridgework_db?authSource=admin"
+MONGO_URI = "mongodb+srv://cmpe-272:cmpe-272@cluster0.crznvzq.mongodb.net/elektron?retryWrites=true&w=majority&appName=Cluster0"
 
 async def seed_data():
     client = AsyncIOMotorClient(MONGO_URI)
