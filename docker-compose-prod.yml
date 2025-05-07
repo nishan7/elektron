@@ -16,7 +16,7 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - MONGO_URI=mongodb://root:example@mongo:27017/elektron?authSource=admin
+      - MONGO_URI=mongodb+srv://cmpe-272:cmpe-272@cluster0.crznvzq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
       - KAFKA_BOOTSTRAP_SERVER=kafka:9092
     depends_on:
       - mongo
