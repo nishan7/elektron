@@ -111,7 +111,7 @@ const PowerAnalysisChart = ({
   // Define threshold colors and styles for consistency
   const powerThresholdColor = "orange";
   const powerThresholdDash = "3 3";
-  const costThresholdColor = "#2ca02c"; // A distinct green
+  const costThresholdColor = "#E91E63";
   const costThresholdDash = "2 4"; // Dotted pattern
 
   // Define tooltip formatter function separately for clarity
@@ -180,26 +180,25 @@ const PowerAnalysisChart = ({
                 <Legend />
 
                 {/* Add Dummy lines for Legend */}
-                {/* These lines don't plot real data but add entries to the legend */}
                 {typeof powerThreshold === 'number' && powerThreshold > 0 && (
                   <Line 
                     dataKey="dummyPowerThreshold" // Non-existent data key
                     name={`Power Threshold (${formatPower(powerThreshold)})`} 
-                    stroke={powerThresholdColor} 
+                    stroke={powerThresholdColor} // Uses the updated powerThresholdColor
                     strokeDasharray={powerThresholdDash} 
-                    strokeWidth={2} // Match visual thickness if needed
-                    legendType="line" // Ensure it looks like a line in legend
-                    connectNulls={false} // Don't connect missing points
-                    dot={false} // No dots on this dummy line
-                    activeDot={false} // No active dots
-                    yAxisId="left" // Associate with correct axis if needed by Legend?
+                    strokeWidth={2}
+                    legendType="line"
+                    connectNulls={false}
+                    dot={false}
+                    activeDot={false}
+                    yAxisId="left"
                   />
                 )}
                  {typeof costThreshold === 'number' && costThreshold > 0 && (
                    <Line 
                     dataKey="dummyCostThreshold" // Non-existent data key
                     name={`Cost Threshold ($${Number(costThreshold).toFixed(2)})`} 
-                    stroke={costThresholdColor} 
+                    stroke={costThresholdColor} // Uses the updated costThresholdColor
                     strokeDasharray={costThresholdDash} 
                     strokeWidth={2}
                     legendType="line"
@@ -219,8 +218,7 @@ const PowerAnalysisChart = ({
                   <ReferenceLine 
                     y={Number(powerThreshold)} 
                     yAxisId="left" 
-                    // label removed
-                    stroke={powerThresholdColor} 
+                    stroke={powerThresholdColor} // Uses the updated powerThresholdColor
                     strokeDasharray={powerThresholdDash} 
                   />
                 )}
@@ -228,9 +226,8 @@ const PowerAnalysisChart = ({
                   <ReferenceLine 
                     y={Number(costThreshold)} 
                     yAxisId="right" 
-                    // label removed
-                    stroke={costThresholdColor} // Changed color
-                    strokeDasharray={costThresholdDash} // Changed dash pattern
+                    stroke={costThresholdColor} // Uses the updated costThresholdColor
+                    strokeDasharray={costThresholdDash}
                   />
                 )}
                 

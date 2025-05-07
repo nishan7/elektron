@@ -47,8 +47,8 @@ const Settings = () => {
         if (isMounted) {
           console.log("Fetched settings:", response.data);
           setSettings({
-            notifications: response.data?.notifications || { email: true, sms: false, criticalAlerts: true },
-            thresholds: response.data?.thresholds || { powerAlert: null, costAlert: null, criticalThreshold: null, dataRefreshInterval: 30, timeZone: 'UTC' }
+            notifications: response.data?.notifications || { email: true },
+            thresholds: response.data?.thresholds || { powerAlert: null, costAlert: null, dataRefreshInterval: 30, timeZone: 'UTC' }
           });
         }
       })
@@ -68,14 +68,20 @@ const Settings = () => {
   }, []);
 
   const handleThresholdChange = (field, value) => {
-    const numValue = (field === 'powerAlert' || field === 'costAlert' || field === 'criticalThreshold' || field === 'dataRefreshInterval') 
-                      ? parseFloat(value) || 0 
-                      : value;
+    let processedValue;
+    if (field === 'powerAlert') {
+      processedValue = parseFloat(value) * 1000 || 0; 
+    } else if (field === 'costAlert' || field === 'dataRefreshInterval') { 
+      processedValue = parseFloat(value) || 0; 
+    } else {
+      processedValue = value;
+    }
+
     setSettings(prev => ({
       ...prev,
       thresholds: {
         ...prev.thresholds,
-        [field]: numValue
+        [field]: processedValue
       }
     }));
   };
@@ -94,10 +100,22 @@ const Settings = () => {
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
-    console.log('Saving settings:', settings);
+    
+    const settingsToSave = {
+        notifications: {
+            email: settings.notifications.email,
+        },
+        thresholds: {
+            powerAlert: settings.thresholds.powerAlert,
+            costAlert: settings.thresholds.costAlert,
+            dataRefreshInterval: settings.thresholds.dataRefreshInterval,
+            timeZone: settings.thresholds.timeZone,
+        }
+    };
+    console.log('Saving settings:', settingsToSave);
 
     try {
-      const response = await API.put('/api/settings', settings);
+      const response = await API.put('/api/settings', settingsToSave);
       console.log('Save successful:', response.data);
       setSaveSuccess(true);
     } catch (err) {
@@ -151,14 +169,6 @@ const Settings = () => {
               control={<Switch checked={settings.notifications.email} onChange={() => handleNotificationChange('email')} />}
               label="Email Notifications"
             />
-            <FormControlLabel
-              control={<Switch checked={settings.notifications.sms} onChange={() => handleNotificationChange('sms')} />}
-              label="SMS Notifications"
-            />
-            <FormControlLabel
-              control={<Switch checked={settings.notifications.criticalAlerts} onChange={() => handleNotificationChange('criticalAlerts')} />}
-              label="Critical Alerts Only"
-            />
           </Grid>
 
           <Grid item xs={12}>
@@ -182,10 +192,13 @@ const Settings = () => {
                 <TextField
                   fullWidth
                   type="number"
-                  value={settings.thresholds.powerAlert || ''}
+                  value={settings.thresholds.powerAlert != null ? (settings.thresholds.powerAlert / 1000).toString() : ''}
                   onChange={(e) => handleThresholdChange('powerAlert', e.target.value)}
                   InputProps={{
-                    endAdornment: <Typography variant="caption">W</Typography>
+                    endAdornment: <Typography variant="caption">kW</Typography>
+                  }}
+                  inputProps={{ 
+                    step: "0.1"
                   }}
                 />
               </Grid>
@@ -201,21 +214,6 @@ const Settings = () => {
                   onChange={(e) => handleThresholdChange('costAlert', e.target.value)}
                   InputProps={{
                     endAdornment: <Typography variant="caption">$</Typography>
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <WarningIcon color="error" sx={{ mr: 1 }} />
-                  <Typography variant="subtitle2">Critical Power Threshold</Typography>
-                </Box>
-                <TextField
-                  fullWidth
-                  type="number"
-                  value={settings.thresholds.criticalThreshold || ''}
-                  onChange={(e) => handleThresholdChange('criticalThreshold', e.target.value)}
-                  InputProps={{
-                    endAdornment: <Typography variant="caption">W</Typography>
                   }}
                 />
               </Grid>
@@ -259,17 +257,16 @@ const Settings = () => {
             </Grid>
           </Grid>
 
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? <CircularProgress size={24} /> : 'Save Changes'}
-              </Button>
-            </Box>
+          <Grid item xs={12} sx={{ mt: 3, textAlign: 'right' }}>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleSave} 
+              disabled={isSaving || loading}
+              startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : null}
+            >
+              {isSaving ? 'Saving...' : 'Save Settings'}
+            </Button>
           </Grid>
         </Grid>
       </Paper>
