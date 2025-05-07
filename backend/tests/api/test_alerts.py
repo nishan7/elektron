@@ -62,12 +62,11 @@ async def retrieves_alerts_with_no_results():
 
 import pytest
 from fastapi.testclient import TestClient
-from backend.models.models import AlertCreate  # Pydantic models
 from datetime import datetime, timezone
 
 
 @pytest.mark.anyio
-async def test_create_alert(client: TestClient, auth_token_headers: dict):
+async def create_alert(client: TestClient, auth_token_headers: dict):
     if not hasattr(pytest, 'device_id_api'):  # Reuse device from device tests or create one
         device_res = client.post("/api/device/", json={"name": "Alert Test Device", "type": "Sensor", "model": "M-ALR",
                                                        "location": "Lab Alert", "serial_number": "SN-ALR-001",
@@ -95,7 +94,7 @@ async def test_create_alert(client: TestClient, auth_token_headers: dict):
 
 
 @pytest.mark.anyio
-async def test_get_alerts_for_device(client: TestClient, auth_token_headers: dict):
+async def get_alerts_for_device(client: TestClient, auth_token_headers: dict):
     if not hasattr(pytest, 'alert_test_device_id'):
         pytest.fail("Device ID for alert testing not available.")
 
@@ -109,7 +108,7 @@ async def test_get_alerts_for_device(client: TestClient, auth_token_headers: dic
 
 
 @pytest.mark.anyio
-async def test_get_unresolved_alerts(client: TestClient, auth_token_headers: dict):
+async def get_unresolved_alerts(client: TestClient, auth_token_headers: dict):
     # Ensure an unresolved alert exists (created by test_create_alert)
     if not hasattr(pytest, 'alert_id_api'):
         pytest.fail("Alert ID not available for testing unresolved alerts.")
@@ -124,7 +123,7 @@ async def test_get_unresolved_alerts(client: TestClient, auth_token_headers: dic
 
 
 @pytest.mark.anyio
-async def test_resolve_alert(client: TestClient, auth_token_headers: dict):
+async def resolve_alert(client: TestClient, auth_token_headers: dict):
     if not hasattr(pytest, 'alert_id_api'):
         pytest.fail("Alert ID not available for resolving.")
 

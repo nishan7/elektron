@@ -1,65 +1,81 @@
 import pytest
-from fastapi.testclient import TestClient
-from backend.models.models import RecordCreate  # Pydantic models
-from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+from datetime import datetime
+from bson import ObjectId
+
+from api.records import RecordsAPI
 
 
-@pytest.mark.anyio
-async def test_create_record(client: TestClient, auth_token_headers: dict):
-    if not hasattr(pytest, 'device_id_api'):
-        # Create a dummy device if not created by device tests
-        # This makes tests more independent but can be slower.
-        # Consider a fixture for a pre-existing device_id.
-        device_res = client.post("/api/device/", json={"name": "Record Test Device", "type": "Meter", "model": "M-REC",
-                                                       "location": "Lab Rec", "serial_number": "SN-REC-001",
-                                                       "status": "active"}, headers=auth_token_headers)
-        if device_res.status_code != 200:  # or 201
-            pytest.fail("Failed to create a prerequisite device for record test.")
-        pytest.record_test_device_id = device_res.json()["id"]
-    else:
-        pytest.record_test_device_id = pytest.device_id_api
+@pytest.mark.asyncio
+async def test_retrieves_records_within_timeframe():
+    mock_db = MagicMock()
+    mock_cursor = AsyncMock()
+    mock_cursor.__aiter__.return_value = [
+        {"_id": ObjectId(), "timestamp": datetime(2023, 1, 1), "device_id": ObjectId(), "power": 100}
+    ]
+    mock_db.db["records"].find.return_value = mock_cursor
 
-    record_data = RecordCreate(
-        device_id=pytest.record_test_device_id,
-        timestamp=datetime.now(timezone.utc).isoformat(),  # Ensure ISO format
-        power_consumption=10.5,
-        voltage=220.5,
-        current=0.047,  # Calculated from P=VI approx for testing
-        status="normal"
-    ).model_dump()
+    api = RecordsAPI()
+    api.db = mock_db
 
-    response = client.post("/api/record/", json=record_data, headers=auth_token_headers)
-    assert response.status_code == 200  # Or 201
-    created_record = response.json()
-    assert created_record["device_id"] == record_data["device_id"]
-    assert "id" in created_record
-    pytest.record_id_api = created_record["id"]
+    result = await api.get_records_within_timeframe(
+        start_time="2023-01-01T00:00:00Z",
+        end_time="2023-01-02T00:00:00Z",
+        device_id=str(ObjectId())
+    )
 
+    assert len(result) == 1
+    assert result[0].power == 100
 
-@pytest.mark.anyio
-async def test_get_records_for_device(client: TestClient, auth_token_headers: dict):
-    if not hasattr(pytest, 'record_test_device_id'):
-        pytest.fail("Device ID for record testing not available.")
+@pytest.mark.asyncio
+async def returns_empty_list_when_no_records_found():
+    mock_db = MagicMock()
+    mock_cursor = AsyncMock()
+    mock_cursor.__aiter__.return_value = []
+    mock_db.db["records"].find.return_value = mock_cursor
 
-    device_id = pytest.record_test_device_id
-    response = client.get(f"/api/record/device/{device_id}", headers=auth_token_headers)
-    assert response.status_code == 200
-    records = response.json()
-    assert isinstance(records, list)
-    # If test_create_record ran, there should be at least one record
-    assert len(records) > 0
-    assert records[0]["device_id"] == device_id
+    api = RecordsAPI()
+    api.db = mock_db
 
+    result = await api.get_records_within_timeframe(
+        start_time="2023-01-01T00:00:00Z",
+        end_time="2023-01-02T00:00:00Z"
+    )
 
-@pytest.mark.anyio
-async def test_get_record_by_id(client: TestClient, auth_token_headers: dict):
-    if not hasattr(pytest, 'record_id_api'):
-        pytest.fail("Record ID not available. Run test_create_record first.")
+    assert result == []
 
-    record_id = pytest.record_id_api
-    response = client.get(f"/api/record/{record_id}", headers=auth_token_headers)
-    assert response.status_code == 200
-    record = response.json()
-    assert record["id"] == record_id
+@pytest.mark.asyncio
+async def calculates_monthly_summary_correctly():
+    mock_db = MagicMock()
+    mock_cursor = AsyncMock()
+    mock_cursor.__aiter__.return_value = [
+        {"_id": 1, "power": 300},
+        {"_id": 2, "power": 200}
+    ]
+    mock_db.db["records"].aggregate.return_value = mock_cursor
 
-# Add tests for other record endpoints, e.g., filtering by date range if implemented.
+    api = RecordsAPI()
+    api.db = mock_db
+
+    result = await api.get_monthly_summary(year=2023)
+
+    assert len(result) == 12
+    assert result[0]["month"] == "Jan"
+    assert result[0]["power"] == 300
+    assert result[1]["month"] == "Feb"
+    assert result[1]["power"] == 200
+
+@pytest.mark.asyncio
+async def handles_empty_monthly_summary():
+    mock_db = MagicMock()
+    mock_cursor = AsyncMock()
+    mock_cursor.__aiter__.return_value = []
+    mock_db.db["records"].aggregate.return_value = mock_cursor
+
+    api = RecordsAPI()
+    api.db = mock_db
+
+    result = await api.get_monthly_summary(year=2023)
+
+    assert len(result) == 12
+    assert all(month["power"] == 0 for month in result)
