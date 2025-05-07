@@ -29,6 +29,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import API from "../API";
+import { formatPower } from '../utils/formatting';
 
 
 const generateHourlyData = async (deviceId, startDate, endDate) => {
@@ -206,7 +207,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
           <CardContent>
             <Typography variant="subtitle2">Time: {label}</Typography>
             <Typography variant="body2" color={status === 'critical' ? 'error' : status === 'warning' ? 'warning' : 'textPrimary'}>
-              Power: {power} W
+              Power: {formatPower(power)}
             </Typography>
             <Typography variant="body2" color="textSecondary">
               Cost: ${cost.toFixed(2)}
@@ -220,7 +221,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
                   ⚠️ Unusual Consumption Detected
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
-                  Expected Range: {Math.round(point.expectedRange.min)}W - {Math.round(point.expectedRange.max)}W
+                  Expected Range: {formatPower(point.expectedRange.min, { decimalPlaces: 0 })} - {formatPower(point.expectedRange.max, { decimalPlaces: 0 })}
                 </Typography>
                 <Typography variant="caption" color="textSecondary" display="block">
                   Anomaly Score: {point.anomalyScore.toFixed(2)}
@@ -332,7 +333,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
                 Current Power
               </Typography>
               <Typography variant="h4">
-                {data[data.length - 1]?.consumption || 0} W
+                {formatPower(data[data.length - 1]?.consumption || 0)}
               </Typography>
               <Typography
                 variant="body2"
@@ -350,7 +351,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
                 Average Power
               </Typography>
               <Typography variant="h4">
-                {Math.round(data.reduce((acc, curr) => acc + curr.consumption, 0) / data.length)} W
+                {formatPower(data.length > 0 ? data.reduce((acc, curr) => acc + curr.consumption, 0) / data.length : 0, { decimalPlaces: 0 })}
               </Typography>
             </CardContent>
           </Card>
@@ -362,7 +363,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
                 Peak Power
               </Typography>
               <Typography variant="h4">
-                {Math.round(Math.max(...data.map(d => d.consumption)))} W
+                {formatPower(data.length > 0 ? Math.max(...data.map(d => d.consumption)) : 0, { decimalPlaces: 0 })}
               </Typography>
             </CardContent>
           </Card>
@@ -416,7 +417,7 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
                           }}
                         />
                         <Typography variant="caption" color="textSecondary">
-                          Normal Range: {Math.round(data[0].expectedRange.min)}W - {Math.round(data[0].expectedRange.max)}W
+                          Normal Range: {data[0]?.expectedRange ? `${formatPower(data[0].expectedRange.min, { decimalPlaces: 0 })} - ${formatPower(data[0].expectedRange.max, { decimalPlaces: 0 })}` : 'N/A'}
                         </Typography>
                       </Box>
                     </>
