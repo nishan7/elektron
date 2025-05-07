@@ -21,7 +21,6 @@ import axios from 'axios';
 import config from '../config';
 
 // Components
-import PowerConsumptionChart from '../components/PowerConsumptionChart';
 import DeviceAnalytics from '../components/DeviceAnalytics';
 import LoadDistribution from '../components/LoadDistribution';
 
@@ -137,25 +136,11 @@ function Analytics() {
       </Grid>
 
       <Grid container spacing={3}>
-        {/* PowerConsumptionChart is still conditional based on 'All Devices' */}
-        {selectedDevice === 'all' && (
-          <Grid item xs={12}> {/* Takes full width when visible */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Power Consumption Overview
-                </Typography>
-                <PowerConsumptionChart selectedDevice={selectedDevice} selectedTimeRange={selectedTimeRange} />
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
-
         {/* DeviceAnalytics and LoadDistribution will now always take full width */}
-        <Grid item xs={12} md={12}> {/* Always full width */}
+        <Grid item xs={12} md={12}>
           <DeviceAnalytics selectedDevice={selectedDevice} selectedDeviceName={selectedDeviceName} selectedTimeRange={selectedTimeRange} />
         </Grid>
-        <Grid item xs={12} md={12}> {/* Always full width */}
+        <Grid item xs={12} md={12}>
           <LoadDistribution selectedDevice={selectedDevice} selectedDeviceName={selectedDeviceName} selectedTimeRange={selectedTimeRange} />
         </Grid>
       </Grid>

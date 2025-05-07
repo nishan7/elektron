@@ -114,7 +114,12 @@ class BaseCRUDAPI(Generic[T]):
 
 
     async def delete(self, item_id: str):
-        result = await self.db.db[self.collection_name].delete_one({"_id": item_id})
+        try:
+            obj_item_id = ObjectId(item_id)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid item ID format: {item_id}")
+        
+        result = await self.db.db[self.collection_name].delete_one({"_id": obj_item_id})
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail=f"{self.model.__name__} not found")
-        return {"message": f"{self.model.__name__} deleted successfully"}
+        return {"message": f"{self.model.__name__} deleted successfully", "id": item_id}

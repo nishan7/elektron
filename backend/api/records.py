@@ -13,6 +13,7 @@ from models.base import Base
 # from backend.models.base import PyObjectId
 from models.models import Device, Record
 
+COST_PER_WH = 0.00015 # Placeholder: $0.15 per kWh, assuming consumption is in Wh
 
 class RecordsAPI(BaseCRUDAPI[Record]):
     DEVICE_COLORS = [
@@ -126,8 +127,10 @@ class RecordsAPI(BaseCRUDAPI[Record]):
             if end_time:
                 match_stage["timestamp"]["$lte"] = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
 
-        if device_id:
-            match_stage["device_id"] = ObjectId(device_id)
+        if device_id and device_id.lower() != 'all': # Ensure device_id is not 'all' for this specific query part
+            if ObjectId.is_valid(device_id):
+                match_stage["device_id"] = ObjectId(device_id)
+            # else: handle invalid ObjectId if necessary, or let other validation catch it
 
         pipeline = []
         if match_stage:
@@ -137,7 +140,7 @@ class RecordsAPI(BaseCRUDAPI[Record]):
                 "$group": {
                     "_id": {"$hour": "$timestamp"},
                     "consumption": {"$sum": "$power"},
-                    "cost": {"$sum": {"$literal": 0}}
+                    # "cost": {"$sum": {"$literal": 0}} # Old cost, removing
                 }
             },
             {"$sort": {"_id": 1}}
@@ -148,11 +151,13 @@ class RecordsAPI(BaseCRUDAPI[Record]):
 
         result = []
         for hour in range(24):
-            doc = agg_result.get(hour, {"consumption": 0, "cost": 0})
+            doc = agg_result.get(hour, {"consumption": 0})
+            consumption = doc["consumption"]
+            cost = round(consumption * COST_PER_WH, 4) # Calculate cost
             result.append({
                 "hour": f"{hour:02}:00",
-                "consumption": doc["consumption"],
-                "cost": int(doc["consumption"] * 0.30)
+                "consumption": consumption,
+                "cost": cost # Add cost to the result
             })
         return result
 
@@ -333,29 +338,33 @@ class RecordsAPI(BaseCRUDAPI[Record]):
         self,
         start_time: str = Query(..., description="Start timestamp ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)"),
         end_time: str = Query(..., description="End timestamp ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)"),
-        device_id: str = Query(..., description="Specific device ID (cannot be 'all')"),
+        device_id: Optional[str] = Query(None, description="Specific device ID, or omit/None for all devices."),
     ):
         try:
             gte_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
             lte_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-            if not ObjectId.is_valid(device_id):
-                 raise ValueError("Invalid device_id format")
-            obj_device_id = ObjectId(device_id)
+            obj_device_id = None
+            is_specific_device_query = False
+            if device_id and device_id.lower() != "all":
+                if not ObjectId.is_valid(device_id):
+                    raise ValueError("Invalid device_id format for specific device trend.")
+                obj_device_id = ObjectId(device_id)
+                is_specific_device_query = True
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Invalid input: {e}")
 
         if lte_time < gte_time:
             raise HTTPException(status_code=400, detail="end_time cannot be earlier than start_time.")
 
-        if device_id.lower() == "all":
-             raise HTTPException(status_code=400, detail="device_id must be specific for daily trend data.")
+        match_conditions = {
+            "timestamp": {"$gte": gte_time, "$lte": lte_time}
+        }
+        if is_specific_device_query and obj_device_id:
+            match_conditions["device_id"] = obj_device_id
 
         pipeline = [
             {
-                "$match": {
-                    "device_id": obj_device_id,
-                    "timestamp": {"$gte": gte_time, "$lte": lte_time}
-                }
+                "$match": match_conditions
             },
             {
                 "$group": {
@@ -386,13 +395,14 @@ class RecordsAPI(BaseCRUDAPI[Record]):
         ]
 
         cursor = self.db.db[self.collection_name].aggregate(pipeline)
-        daily_trend_data = await cursor.to_list(length=None) # Fetch all results
+        daily_trend_data = await cursor.to_list(length=None)
         
-        # Ensure date is in a simple string format like YYYY-MM-DD for easier chart consumption
         for item in daily_trend_data:
             if isinstance(item["date"], datetime):
                 item["date"] = item["date"].strftime("%Y-%m-%d")
-            item["consumption"] = round(item.get("consumption", 0), 2) # Ensure consumption is a float
+            consumption = round(item.get("consumption", 0), 2)
+            item["consumption"] = consumption
+            item["cost"] = round(consumption * COST_PER_WH, 4)
 
         return daily_trend_data
 

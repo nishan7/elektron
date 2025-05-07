@@ -11,7 +11,7 @@ from confluent_kafka import Producer
 KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'readings')
 KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9093')
 
-DEVICE_IDS = ["681b26078d3cbf172cde9d64"]  # Only the one device ID
+DEVICE_IDS = ["681b26078d3cbf172cde9d64", "681b88df891e8bddeb948477", "681b8755128c377665dd5d31"]
 
 conf = {'bootstrap.servers': KAFKA_BOOTSTRAP_SERVER,
         'client.id': socket.gethostname()}

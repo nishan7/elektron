@@ -17,6 +17,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatPower } from '../utils/formatting';
 import API from '../API'; // Make sure API helper is correctly imported and configured
+import PowerAnalysisChart from './PowerAnalysisChart'; // IMPORT the new component
 
 // Removed placeholder fetchDeviceAnalyticsData function
 
@@ -25,19 +26,13 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
   console.log("--- DeviceAnalytics RENDER START ---", { selectedDevice, selectedDeviceName, selectedTimeRange });
 
   const [loading, setLoading] = useState(true);
-  const [chartLoading, setChartLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [chartError, setChartError] = useState(null);
   
   // State to hold the summary data fetched from the backend
   const [analyticsSummary, setAnalyticsSummary] = useState({
        deviceName: null, deviceType: null, averagePower: null, peakPower: null,
        minPower: null, totalConsumption: null, peakPowerTimestamp: null, peakHours: []
   });
-
-  // State for the recharts chart (still using sample data for now)
-  // TODO: Fetch real chart data if needed for this component
-  const [chartData, setChartData] = useState({ hourlyData: [], trendData: [] });
 
   const [generatedInsights, setGeneratedInsights] = useState('');
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -51,24 +46,17 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
   }, []);
 
   useEffect(() => {
-    const loadAnalytics = async () => {
+    const loadAnalyticsSummary = async () => {
       if (!selectedDevice || !selectedTimeRange) {
          setLoading(false);
-         setChartLoading(false);
-         setChartData({ hourlyData: [], trendData: [] }); // Clear chart data
          return;
       } 
       
-      setLoading(true); // For summary
-      setChartLoading(true); // For chart
+      setLoading(true); 
       setError(null);
-      setChartError(null);
       setInsightsError(null);
       setGeneratedInsights('');
-      // Clear previous chart data before fetching new
-      setChartData({ hourlyData: [], trendData: [] });
 
-      // Calculate start/end times
       const today = new Date();
       let startDate, endDate;
       switch (selectedTimeRange) {
@@ -92,55 +80,24 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
       const endTimeStr = endDate?.toISOString();
 
       try {
-        // Fetch analytics summary (unchanged)
+        // Fetch analytics summary (this already handles 'all' by passing undefined)
         const summaryResponse = await API.get('/api/record/device-analytics-summary', {
             params: { 
                 device_id: selectedDevice === 'all' ? undefined : selectedDevice,
-                start_time: startTimeStr,
-                end_time: endTimeStr
+                start_time: startTimeStr, end_time: endTimeStr
             }
         });
         setAnalyticsSummary(summaryResponse.data);
-        setLoading(false); // Summary loaded
-
-        // Fetch chart data based on selection (only for specific devices for now)
-        if (selectedDevice !== 'all') {
-          if (selectedTimeRange === '24h') {
-            const hourlyResponse = await API.get('/api/record/hourly-summary', {
-              params: { device_id: selectedDevice, start_time: startTimeStr, end_time: endTimeStr }
-            });
-            // API returns {hour: "HH:00", consumption: X}
-            // Chart expects {hour: number, consumption: Y}
-            const formattedHourlyData = hourlyResponse.data.map(d => ({
-                hour: parseInt(d.hour.split(':')[0]), // Convert "HH:00" to number HH
-                consumption: d.consumption
-            }));
-            setChartData(prev => ({ ...prev, hourlyData: formattedHourlyData }));
-          } else { // 7d or 30d
-            const trendResponse = await API.get('/api/record/daily-trend-for-device', {
-              params: { device_id: selectedDevice, start_time: startTimeStr, end_time: endTimeStr }
-            });
-            // API returns {date: "YYYY-MM-DD", consumption: X}
-            // Chart expects {date: string (can be YYYY-MM-DD), consumption: Y}
-            setChartData(prev => ({ ...prev, trendData: trendResponse.data }));
-          }
-        } else {
-          // For 'all' devices, explicitly clear chart data as no specific chart is implemented yet
-          setChartData({ hourlyData: [], trendData: [] });
-        }
       } catch (err) {
-        console.error("Failed to load device analytics data:", err);
-        // Distinguish between summary error and chart error if possible, or use a general error
-        if (loading) setError(err.response?.data?.detail || "Could not load analytics summary.");
-        setChartError(err.response?.data?.detail || "Could not load chart data.");
+        console.error(`Failed to load summary data for ${selectedDevice}:`, err);
+        setError(err.response?.data?.detail || "Could not load summary.");
         setAnalyticsSummary({ deviceName: null, deviceType: null, averagePower: null, peakPower: null, minPower: null, totalConsumption: null, peakPowerTimestamp: null, peakHours: [] });
       } finally {
-        setLoading(false); // Ensure summary loading is false
-        setChartLoading(false); // Chart loading finished (success or fail)
+        setLoading(false);
       }
     };
 
-    loadAnalytics();
+    loadAnalyticsSummary();
   }, [selectedDevice, selectedTimeRange]);
 
   const handleGenerateInsights = async () => {
@@ -204,9 +161,6 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
     }
   };
 
-  // handleExport can also use analyticsSummary if needed
-  const handleExport = () => console.log('Exporting data for device:', selectedDevice, `(${selectedDeviceName})`, 'time range:', selectedTimeRange, 'Summary:', analyticsSummary);
-
   // Display loading indicator or message if loading or no specific device selected
   if (loading) {
     return (
@@ -243,7 +197,6 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h6">Key Metrics for {analyticsSummary.deviceName || (selectedDevice === 'all' ? 'All Devices' : selectedDeviceName)}</Typography>
-              <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} size="small">Export Report</Button>
             </Box>
             <Grid container spacing={2} sx={{ mb: 3 }}>
                <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Average Power</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.averagePower ?? 0)}</Typography></CardContent></Card></Grid>
@@ -256,55 +209,17 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
           </CardContent>
         </Card>
 
-      {/* Power Analytics Chart Section */}
-         <Card sx={{mb: 3}}>
-           <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" mb={2} gap={2}>
-              <Typography variant="h6">Device Power Analysis for {analyticsSummary.deviceName || (selectedDevice === 'all' ? 'All Devices' : selectedDeviceName)}</Typography>
-            </Box>
-            <Box height={300} sx={{ position: 'relative' }}>
-                {chartLoading && (
-                    <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.7)', zIndex: 1 }}>
-                        <CircularProgress />
-                    </Box>
-                )}
-                {selectedDevice === 'all' ? 
-                   (<Box display="flex" justifyContent="center" alignItems="center" height="100%"><Typography color="text.secondary">Overall chart not yet implemented.</Typography></Box>) :
-                 chartError && (!chartData.hourlyData.length && !chartData.trendData.length) ? 
-                   (<Box display="flex" justifyContent="center" alignItems="center" height="100%"><Alert severity="error">{chartError}</Alert></Box>) :
-                 selectedTimeRange === '24h' && chartData.hourlyData.length > 0 ? 
-                  (<ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData.hourlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="hour" tickFormatter={(tick) => `${tick}:00`} name="Hour"/>
-                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" label={{ value: 'W', angle: -90, position: 'insideLeft' }}/>
-                      <Tooltip formatter={(value) => [formatPower(value), "Power (W)"]}/>
-                      <Legend />
-                      <Line yAxisId="left" type="monotone" dataKey="consumption" name="Power (W)" stroke="#8884d8" activeDot={{ r: 8 }} dot={{r:3}} />
-                    </LineChart>
-                  </ResponsiveContainer>) : 
-                 selectedTimeRange !== '24h' && chartData.trendData.length > 0 ? 
-                  (<ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData.trendData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" name="Date" /> 
-                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" label={{ value: 'Avg W', angle: -90, position: 'insideLeft' }}/>
-                      <Tooltip formatter={(value) => [formatPower(value), "Avg Power (W)"]}/>
-                      <Legend />
-                      <Line yAxisId="left" type="monotone" dataKey="consumption" name="Avg Power (W)" stroke="#8884d8" activeDot={{ r: 8 }} />
-                    </LineChart>
-                  </ResponsiveContainer>) :
-                 !chartLoading && (<Box display="flex" justifyContent="center" alignItems="center" height="100%"><Typography color="text.secondary">No chart data available for this selection.</Typography></Box>)
-                }
-            </Box>
-           </CardContent>
-         </Card>
+      {/* Render PowerAnalysisChart component instead of inline chart JSX */}
+      <PowerAnalysisChart 
+          selectedDevice={selectedDevice} 
+          selectedTimeRange={selectedTimeRange} 
+      />
 
       {/* Insights Section */}
-        <Card> 
+        <Card sx={{mt: 3}}> 
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">Business Insights (AI Generated)</Typography>
+              <Typography variant="h6">Insights (AI Generated)</Typography>
               <Button variant="contained" size="small" onClick={handleGenerateInsights} 
                       disabled={insightsLoading || loading || analyticsSummary.averagePower === null || !genAI} 
                       startIcon={insightsLoading ? <CircularProgress size={20} color="inherit"/> : null}>

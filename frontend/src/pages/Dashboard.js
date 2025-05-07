@@ -13,7 +13,7 @@ import {
 
 // Components
 import DeviceStatus from '../components/DeviceStatus';
-import PowerConsumptionChart from '../components/PowerConsumptionChart';
+import PowerAnalysisChart from '../components/PowerAnalysisChart';
 import AlertsList from '../components/AlertsList';
 
 // Sample data
@@ -78,7 +78,6 @@ const sampleAlerts = [
 
 
 function Dashboard() {
-  const [selectedDevice, setSelectedDevice] = useState('all');
   const [devices] = useState(sampleDevices);
   const [dashboardData] = useState({
     totalDevices: sampleDevices.length,
@@ -86,10 +85,6 @@ function Dashboard() {
     totalPower: 2500, // Sample total power in watts
     recentAlerts: sampleAlerts,
   });
-
-  const handleDeviceChange = (deviceId) => {
-    setSelectedDevice(deviceId);
-  };
 
   if (!devices || devices.length === 0) {
     return (
@@ -103,7 +98,10 @@ function Dashboard() {
     <Box>
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <PowerConsumptionChart selectedDevice={selectedDevice} onDeviceChange={handleDeviceChange} />
+          <PowerAnalysisChart 
+            selectedDevice="all" 
+            selectedTimeRange="24h"
+          />
         </Grid>
         <Grid item xs={12} md={4}>
           <DeviceStatus devices={devices} />

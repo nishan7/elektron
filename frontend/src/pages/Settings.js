@@ -116,24 +116,6 @@ const Settings = () => {
               }
               label="Email Notifications"
             />
-            <FormControlLabel
-              control={
-                <Switch 
-                  checked={settings.notifications.sms}
-                  onChange={() => handleNotificationChange('sms')}
-                />
-              }
-              label="SMS Notifications"
-            />
-            <FormControlLabel
-              control={
-                <Switch 
-                  checked={settings.notifications.criticalAlerts}
-                  onChange={() => handleNotificationChange('criticalAlerts')}
-                />
-              }
-              label="Critical Alerts"
-            />
           </Grid>
 
           <Grid item xs={12}>
@@ -152,26 +134,6 @@ const Settings = () => {
               Set thresholds for power consumption and cost alerts. When these values are exceeded, notifications will be triggered based on your notification settings.
             </Alert>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <PowerIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="subtitle2">Power Alert</Typography>
-                  <Tooltip title="System will send an alert when power consumption exceeds this value">
-                    <IconButton size="small">
-                      <InfoIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-                <TextField
-                  fullWidth
-                  type="number"
-                  value={settings.thresholds.powerAlert}
-                  onChange={(e) => handleThresholdChange('powerAlert', e.target.value)}
-                  InputProps={{
-                    endAdornment: <Typography variant="caption">kW</Typography>
-                  }}
-                />
-              </Grid>
               <Grid item xs={12} md={6}>
                 <Box display="flex" alignItems="center" mb={1}>
                   <MoneyIcon color="success" sx={{ mr: 1 }} />
