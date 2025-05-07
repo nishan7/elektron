@@ -7,9 +7,6 @@ services:
       - "80:80"
     volumes:
       - ./deployment/nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - frontend
-      - backend
 
   backend:
     image: nishanpaudel/elektron-backend
@@ -50,6 +47,7 @@ services:
       - REACT_APP_API_URL=http://localhost:8000
     depends_on:
       - backend
+      - nginx
 
 
 
