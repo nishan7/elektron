@@ -29,9 +29,13 @@ class RecordsAPI(BaseCRUDAPI[Record]):
     def setup_routes(self):
         self.router.get("/data", response_model=List[Record])(self.get_records_within_timeframe)
         self.router.get("/monthly-summary")(self.get_monthly_summary)
+        self.router.get("/monthly-summary/")(self.get_monthly_summary)
         self.router.get("/hourly-summary")(self.get_hourly_summary)
+        self.router.get("/hourly-summary/")(self.get_hourly_summary)
         self.router.get("/daily-summary")(self.get_daily_summary)
+        self.router.get("/daily-summary/")(self.get_daily_summary)
         self.router.get("/last-month-summary")(self.get_last_month_summary_by_type)
+        self.router.get("/last-month-summary/")(self.get_last_month_summary_by_type)
         self.router.get("/load-distribution-period", summary="Get load distribution for a specified period and device.")(self.get_load_distribution_period)
         self.router.get("/load-distribution-period/", summary="Get load distribution for a specified period and device.")(self.get_load_distribution_period)
         self.router.get("/device-analytics-summary", summary="Get aggregated analytics for a device over a period.")(self.get_device_analytics_summary)
