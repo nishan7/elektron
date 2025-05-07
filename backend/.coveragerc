@@ -1,0 +1,17 @@
+# .coveragerc
+[run]
+branch = True
+omit =
+    */tests/*
+    */test_*.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+
+[html]
+directory = coverage_html
+
+[json]
+output = coverage.json

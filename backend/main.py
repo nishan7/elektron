@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Bridge Works API",
+    title="Elektron",
     description="API documentation for managing jobs, gigs, and volunteers.",
     version="1.0.0",
     docs_url="/docs",  # Swagger UI endpoint

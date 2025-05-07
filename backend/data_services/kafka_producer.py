@@ -25,12 +25,23 @@ def run_producer():
     try:
         while True:
             for device_id in DEVICE_IDS:
-                reading = {"device_id": device_id,
-                           "timestamp": datetime.datetime.utcnow() - datetime.timedelta(days=random.randint(0, 365),
-                                                                                        hours=random.randint(0, 23),
-                                                                                        minutes=random.randint(0, 59),
-                                                                                        seconds=random.randint(0, 59)),
-                           "power": random.uniform(0, 100), }
+                now = datetime.datetime.now(datetime.timezone.utc).astimezone()  # Local time
+                hour = now.hour
+
+                # Adjust weight to simulate more readings during morning (6–10 AM) and evening (6–10 PM)
+                if 6 <= hour <= 10 or 18 <= hour <= 22:
+                    power = random.uniform(60, 100)
+                else:
+                    power = random.uniform(0, 60)
+
+                reading = {
+                    "device_id": device_id,
+                    "timestamp": datetime.datetime.utcnow() - datetime.timedelta(days=random.randint(0, 365),
+                                                                                 hours=random.randint(0, 23),
+                                                                                 minutes=random.randint(0, 59),
+                                                                                 seconds=random.randint(0, 59)),
+                    "power": power,
+                }
 
                 producer.produce(KAFKA_TOPIC, json.dumps(reading, default=str))  # Send as bytes
                 print("Posted data", reading)
