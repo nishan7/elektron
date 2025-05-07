@@ -27,7 +27,7 @@ class BaseCRUDAPI(Generic[T]):
     def __init__(self, model: Type[T], collection_name: str):
         self.model = model
         self.collection_name = collection_name
-        self.router = APIRouter(strict_slashes=False)
+        self.router = APIRouter()
         self.db = db
         self.setup_routes()
 
