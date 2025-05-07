@@ -32,7 +32,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Note that nginx will serve the app in port 80 by default
-EXPOSE 3000
+EXPOSE 80
 
 # Start nginx server
 CMD ["nginx", "-g", "daemon off;"]
