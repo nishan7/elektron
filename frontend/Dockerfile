@@ -4,6 +4,8 @@ FROM node:20-alpine AS builder
 # Set working directory inside the container
 WORKDIR /app
 
+RUN ls -la
+
 # Copy package.json and install dependencies
 COPY package.json package-lock.json ./
 RUN npm install
