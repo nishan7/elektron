@@ -1,0 +1,14 @@
+[
+  {
+    "_id": "681bb377330d51770f80713e",
+    "notifications": {
+      "email": true
+    },
+    "thresholds": {
+      "powerAlert": 100000.0,
+      "costAlert": 15.0,
+      "dataRefreshInterval": 30,
+      "timeZone": "UTC"
+    }
+  }
+]
