@@ -5,6 +5,7 @@ import {
   ListItemText,
   ListItemIcon,
   Chip,
+  Typography,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -13,6 +14,8 @@ import {
 } from '@mui/icons-material';
 
 function DeviceStatus({ devices = [] }) {
+  console.log("[DeviceStatus] Component rendered/updated. Devices prop:", JSON.parse(JSON.stringify(devices)));
+
   const getHealthIcon = (healthStatus) => {
     switch (healthStatus || 'unknown') {
       case 'good':
@@ -22,7 +25,7 @@ function DeviceStatus({ devices = [] }) {
       case 'critical':
         return <ErrorIcon color="error" />;
       default:
-        return <ErrorIcon color="error" />;
+        return <ErrorIcon color="disabled" />;
     }
   };
 
@@ -39,11 +42,15 @@ function DeviceStatus({ devices = [] }) {
     }
   };
 
+  if (!devices || devices.length === 0) {
+    return <Typography variant="body2">No device data available.</Typography>;
+  }
+
   return (
     <List>
       {devices.map((device) => (
         <ListItem
-          key={device.id}
+          key={device._id || device.id}
           divider
           secondaryAction={getHealthChip(device.health)}
         >
@@ -52,7 +59,7 @@ function DeviceStatus({ devices = [] }) {
           </ListItemIcon>
           <ListItemText
             primary={device.name}
-            secondary={`Type: ${device.type} | Status: ${device.status}`}
+            secondary={`Type: ${device.type || 'N/A'} | Status: ${device.status || 'N/A'}`}
           />
         </ListItem>
       ))}

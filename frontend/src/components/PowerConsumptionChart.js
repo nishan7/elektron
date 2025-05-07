@@ -86,111 +86,104 @@ const detectAnomalies = (data, sensitivity = 2) => {
   }));
 };
 
-function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
+// Helper to determine API endpoint and params based on selectedTimeRange
+const getDataConfig = (timeRange, deviceId, startDate, endDate, year) => {
+  switch (timeRange) {
+    case '24h':
+      return {
+        endpoint: '/api/record/hourly-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'hour',
+      };
+    case '7d':
+      return {
+        endpoint: '/api/record/daily-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'day',
+      };
+    case '30d': // For 30 days, we might still want daily summary for a longer period
+      return {
+        endpoint: '/api/record/daily-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'day',
+      };
+    // Add a case for 'monthly' if your parent component can send that, or adapt '30d' to use monthly-summary if appropriate
+    // case 'monthly': 
+    //   return {
+    //     endpoint: '/api/record/monthly-summary',
+    //     params: { year: year, device_id: deviceId === 'all' ? undefined : deviceId },
+    //     dataKey: 'month',
+    //   };
+    default:
+      return {
+        endpoint: '/api/record/hourly-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'hour',
+      };
+  }
+};
+
+function PowerConsumptionChart({ selectedDevice = 'all', selectedTimeRange }) {
   const [loading, setLoading] = useState(false);
-  const [timeRange, setTimeRange] = useState('hourly');
   const [data, setData] = useState([]);
-  const [currentDevice, setCurrentDevice] = useState(null);
   const [thresholds, setThresholds] = useState({
     warning: 80,
     critical: 90,
   });
-  // Add state for startDate and endDate
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  // Device options state
-  const [deviceOptions, setDeviceOptions] = useState([]);
-  // Use stored state for startDateStr and endDateStr
-  const startDateStr = startDate || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const endDateStr = endDate || new Date().toISOString().split('T')[0];
+  const [xAxisDataKey, setXAxisDataKey] = useState('hour');
 
   const fetchData = useCallback(async () => {
+    if (!selectedDevice) return;
+
     setLoading(true);
-    // Guard: if no currentDevice and not monthly, skip API call
-    if (!currentDevice && timeRange !== 'monthly') {
+    try {
+      let startDate, endDate, year;
+      const today = new Date();
+      switch (selectedTimeRange) {
+        case '7d':
+          endDate = new Date(today);
+          startDate = new Date(today.setDate(today.getDate() - 6)); // Last 7 days including today
+          break;
+        case '30d':
+          endDate = new Date(today);
+          startDate = new Date(today.setDate(today.getDate() - 29)); // Last 30 days including today
+          break;
+        // case 'monthly': // if you add this option in parent
+        //   year = new Date().getFullYear().toString(); // Or a selected year
+        //   break;
+        case '24h':
+        default:
+          endDate = new Date(today);
+          startDate = new Date(today); // Data for today, hourly summary should handle this
+          break;
+      }
+
+      const startDateStr = startDate?.toISOString().split('T')[0];
+      const endDateStr = endDate?.toISOString().split('T')[0];
+
+      const { endpoint, params, dataKey } = getDataConfig(selectedTimeRange, selectedDevice, startDateStr, endDateStr, year);
+      setXAxisDataKey(dataKey);
+      
+      const response = await API.get(endpoint, { params });
+      const dataWithAnomalies = detectAnomalies(response.data || []);
+      setData(dataWithAnomalies);
+    } catch (error) {
+      console.error('Failed to fetch power consumption data:', error);
       setData([]);
+    } finally {
       setLoading(false);
-      return;
     }
-    let sampleData;
-    if (timeRange === 'hourly') {
-      sampleData = generateHourlyData(currentDevice, startDateStr, endDateStr);
-    } else if (timeRange === 'daily') {
-      sampleData = generateDailyData(currentDevice, startDateStr, endDateStr);
-    } else if (timeRange === 'monthly') {
-      const year = startDateStr.substring(0, 4);
-      console.log('Calling generateMonthlyData with:', currentDevice, year);
-      sampleData = generateMonthlyData(currentDevice, year);
-    } else {
-      sampleData = generateHourlyData(currentDevice, startDateStr, endDateStr);
-    }
-    // Add anomaly detection
-    const dataWithAnomalies = detectAnomalies(await sampleData);
-    setData(dataWithAnomalies);
-    setLoading(false);
-  }, [timeRange, currentDevice, startDateStr, endDateStr]);
+  }, [selectedDevice, selectedTimeRange]);
 
-  // Update currentDevice when selectedDevice prop changes
-  useEffect(() => {
-    setCurrentDevice(selectedDevice ?? null);
-  }, [selectedDevice]);
-
-  // Fetch data when timeRange or currentDevice changes
   useEffect(() => {
     fetchData();
-  }, [timeRange, currentDevice, fetchData]);
-
-  // Fetch the device list from API on mount
-  useEffect(() => {
-    const fetchDevices = async () => {
-      try {
-        const res = await API.get('/api/device');
-        setDeviceOptions(res.data);
-        console.log(res.data)
-      } catch (err) {
-        console.error('Failed to fetch devices:', err);
-      }
-    };
-    fetchDevices();
-  }, []);
-
-  const handleTimeRangeChange = (event, newValue) => {
-    if (newValue !== null) {
-      setTimeRange(newValue);
-    }
-  };
-
-  const handleDeviceChange = (event) => {
-    const newDevice = event.target.value;
-    console.log(newDevice, event.target);
-    setCurrentDevice(newDevice);
-    if (onDeviceChange) {
-      onDeviceChange(newDevice);
-    }
-  };
-
-  const getXAxisDataKey = () => {
-    switch (timeRange) {
-      case 'hourly':
-        return 'hour';
-      case 'daily':
-        return 'day';
-      case 'monthly':
-        return 'month';
-      default:
-        return 'hour';
-    }
-  };
+  }, [fetchData]);
 
   const getPowerStatus = (power) => {
-    const maxPower = currentDevice ? parseInt(currentDevice.powerRating) : 1000;
+    const maxPower = 1000; // Placeholder until powerRating is properly sourced
     const percentage = (power / maxPower) * 100;
-
-    if (percentage >= thresholds.critical) {
-      return 'critical';
-    } else if (percentage >= thresholds.warning) {
-      return 'warning';
-    }
+    if (percentage >= thresholds.critical) return 'critical';
+    if (percentage >= thresholds.warning) return 'warning';
     return 'normal';
   };
 
@@ -203,30 +196,32 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
       const isAnomaly = point.isAnomaly;
 
       return (
-        <Card>
-          <CardContent>
+        <Card sx={{backgroundColor: 'background.paper', opacity: 0.9}}>
+          <CardContent sx={{p:1}}>
             <Typography variant="subtitle2">Time: {label}</Typography>
-            <Typography variant="body2" color={status === 'critical' ? 'error' : status === 'warning' ? 'warning' : 'textPrimary'}>
+            <Typography variant="body2" color={status === 'critical' ? 'error.main' : status === 'warning' ? 'warning.main' : 'text.primary'}>
               Power: {formatPower(power)}
             </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Cost: ${cost.toFixed(2)}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
+            {cost !== undefined && (
+              <Typography variant="body2" color="text.secondary">
+                Cost: ${cost.toFixed(2)}
+              </Typography>
+            )}
+            <Typography variant="body2" color="text.secondary">
               Status: {status.toUpperCase()}
             </Typography>
             {isAnomaly && (
-              <>
-                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
-                  ⚠️ Unusual Consumption Detected
+              <Box mt={1}>
+                <Typography variant="body2" color="error.main" sx={{ fontWeight: 'bold'}}>
+                  ⚠️ Unusual Consumption
                 </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Expected Range: {formatPower(point.expectedRange.min, { decimalPlaces: 0 })} - {formatPower(point.expectedRange.max, { decimalPlaces: 0 })}
+                <Typography variant="caption" color="text.secondary">
+                  Range: {formatPower(point.expectedRange.min, { decimalPlaces: 0 })} - {formatPower(point.expectedRange.max, { decimalPlaces: 0 })}
                 </Typography>
-                <Typography variant="caption" color="textSecondary" display="block">
-                  Anomaly Score: {point.anomalyScore.toFixed(2)}
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Score: {point.anomalyScore?.toFixed(2) ?? 'N/A'}
                 </Typography>
-              </>
+              </Box>
             )}
           </CardContent>
         </Card>
@@ -237,259 +232,41 @@ function PowerConsumptionChart({ selectedDevice = 'all', onDeviceChange }) {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight={{ xs: 200, sm: 300, md: 400 }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  const activeDevice = deviceOptions.find(d => d._id === currentDevice);
+  if (!data || data.length === 0) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight={{ xs: 200, sm: 300, md: 400 }}>
+        <Typography color="text.secondary">No data available for the selected period.</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>Device</InputLabel>
-            <Select
-              value={currentDevice ?? ''}
-              onChange={handleDeviceChange}
-              label="Device"
-            >
-              <MenuItem value="">Select a Device</MenuItem>
-              <MenuItem value="all">All Devices</MenuItem>
-              {deviceOptions.map((device, index) => (
-                <MenuItem key={device._id || index} value={device._id}>
-                  {device.name || `Device ${index + 1}`}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <ToggleButtonGroup
-            value={timeRange}
-            exclusive
-            onChange={handleTimeRangeChange}
-            fullWidth
-          >
-            <ToggleButton value="hourly">Hourly</ToggleButton>
-            <ToggleButton value="daily">Daily</ToggleButton>
-            <ToggleButton value="monthly">Monthly</ToggleButton>
-          </ToggleButtonGroup>
-        </Grid>
-        {/* Removed Start Date and End Date input fields */}
-      </Grid>
-
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6">
-          {activeDevice?.name || 'Select a Device'} Power Consumption
-        </Typography>
-        <ButtonGroup size="small">
-          <Button
-            variant={timeRange === 'hourly' ? 'contained' : 'outlined'}
-            onClick={() => {
-              setTimeRange('hourly');
-              const end = new Date();
-              const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-              setStartDate(start.toISOString().split('T')[0]);
-              setEndDate(end.toISOString().split('T')[0]);
-            }}
-          >
-            24 Hours
-          </Button>
-          <Button
-            variant={timeRange === 'daily' ? 'contained' : 'outlined'}
-            onClick={() => {
-              setTimeRange('daily');
-              const end = new Date();
-              const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
-              setStartDate(start.toISOString().split('T')[0]);
-              setEndDate(end.toISOString().split('T')[0]);
-            }}
-          >
-            7 Days
-          </Button>
-          <Button
-            variant={timeRange === 'monthly' ? 'contained' : 'outlined'}
-            onClick={() => {
-              setTimeRange('monthly');
-              const end = new Date();
-              const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-              setStartDate(start.toISOString().split('T')[0]);
-              setEndDate(end.toISOString().split('T')[0]);
-            }}
-          >
-            30 Days
-          </Button>
-        </ButtonGroup>
-      </Box>
-
-      <Grid container spacing={2} mb={2}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle2" color="textSecondary">
-                Current Power
-              </Typography>
-              <Typography variant="h4">
-                {formatPower(data[data.length - 1]?.consumption || 0)}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={getPowerStatus(data[data.length - 1]?.consumption || 0) === 'critical' ? 'error' : 'textSecondary'}
-              >
-                Status: {getPowerStatus(data[data.length - 1]?.consumption || 0).toUpperCase()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle2" color="textSecondary">
-                Average Power
-              </Typography>
-              <Typography variant="h4">
-                {formatPower(data.length > 0 ? data.reduce((acc, curr) => acc + curr.consumption, 0) / data.length : 0, { decimalPlaces: 0 })}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle2" color="textSecondary">
-                Peak Power
-              </Typography>
-              <Typography variant="h4">
-                {formatPower(data.length > 0 ? Math.max(...data.map(d => d.consumption)) : 0, { decimalPlaces: 0 })}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Box height={400}>
+    <Box>
+      <Box height={{ xs: 300, sm: 350, md: 400 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-          >
+          <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={getXAxisDataKey()} />
+            <XAxis dataKey={xAxisDataKey} />
             <YAxis yAxisId="left" label={{ value: 'Power (W)', angle: -90, position: 'insideLeft' }} />
-            <YAxis yAxisId="right" orientation="right" label={{ value: 'Cost ($)', angle: 90, position: 'insideRight' }} />
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              content={({ payload }) => (
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 1 }}>
-                  {payload?.map((entry, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          backgroundColor: entry.color,
-                          borderRadius: '50%'
-                        }}
-                      />
-                      <Typography variant="caption">
-                        {entry.value}
-                      </Typography>
-                    </Box>
-                  ))}
-                  {data[0]?.expectedRange && (
-                    <>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
-                          sx={{
-                            width: 12,
-                            height: 12,
-                            backgroundColor: 'transparent',
-                            border: '2px dashed #ff0000',
-                            borderRadius: '50%'
-                          }}
-                        />
-                        <Typography variant="caption" color="textSecondary">
-                          Normal Range: {data[0]?.expectedRange ? `${formatPower(data[0].expectedRange.min, { decimalPlaces: 0 })} - ${formatPower(data[0].expectedRange.max, { decimalPlaces: 0 })}` : 'N/A'}
-                        </Typography>
-                      </Box>
-                    </>
-                  )}
-                </Box>
-              )}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="consumption"
-              stroke="#8884d8"
-              name="Power Consumption"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="cost"
-              stroke="#82ca9d"
-              name="Cost"
-            />
-            <ReferenceLine
-              yAxisId="left"
-              y={data[0]?.expectedRange?.max}
-              stroke="red"
-              strokeDasharray="3 3"
-            />
-            <ReferenceLine
-              yAxisId="left"
-              y={data[0]?.expectedRange?.min}
-              stroke="red"
-              strokeDasharray="3 3"
-            />
+            <Legend />
+            <Line yAxisId="left" type="monotone" dataKey="consumption" strokeWidth={2} stroke={thresholds.critical ? "#1976d2" : "#8884d8" } name="Power Consumption" dot={{ r: 2 }} activeDot={{ r: 6 }}/>
+            {data[0]?.expectedRange?.max !== undefined && (
+              <ReferenceLine yAxisId="left" y={data[0].expectedRange.max} stroke="red" strokeDasharray="3 3" />
+            )}
+            {data[0]?.expectedRange?.min !== undefined && (
+              <ReferenceLine yAxisId="left" y={data[0].expectedRange.min} stroke="red" strokeDasharray="3 3" />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </Box>
-
-      <Box mt={3}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Total Consumption
-              </Typography>
-              <Typography variant="h6">
-                {data.reduce((sum, item) => sum + item.consumption, 0).toLocaleString()} W
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Peak Consumption
-              </Typography>
-              <Typography variant="h6">
-                {Math.max(...data.map(item => item.consumption)).toLocaleString()} W
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Total Cost
-              </Typography>
-              <Typography variant="h6">
-                ${data.reduce((sum, item) => sum + item.cost, 0).toLocaleString()}
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-    </Paper>
+    </Box>
   );
 }
 

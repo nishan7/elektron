@@ -218,4 +218,4 @@ function Analytics({ deviceId }) {
   );
 }
 
-export default Analytics; 
+export default Analytics;
