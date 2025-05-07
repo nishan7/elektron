@@ -120,7 +120,7 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
         Overall Key Metrics:
         - Overall Average Power Consumption: ${formatPower(analyticsSummary.averagePower)}
         - Overall Peak Power Consumption (highest single reading): ${formatPower(analyticsSummary.peakPower)}
-        - Overall Total Energy Consumption: ${formatPower(analyticsSummary.totalConsumption, { kwThreshold: Infinity, decimalPlaces: 0 })} Wh
+        - Overall Total Energy Consumption: ${formatPower(analyticsSummary.totalConsumption, { kwThreshold: Infinity, decimalPlaces: 0 })}
         - Peak Usage Hours (Hour of day, 0-23, for total consumption): ${analyticsSummary.peakHours?.join(', ') || 'N/A'}
 
         Based *specifically* on these aggregated metrics:
@@ -138,7 +138,7 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
         - Average Power Consumption: ${formatPower(analyticsSummary.averagePower)}
         - Peak Power Consumption: ${formatPower(analyticsSummary.peakPower)} (occurred around ${analyticsSummary.peakPowerTimestamp ? new Date(analyticsSummary.peakPowerTimestamp).toLocaleString() : 'N/A'})
         - Minimum Power Consumption (Standby): ${formatPower(analyticsSummary.minPower)}
-        - Total Energy Consumption: ${formatPower(analyticsSummary.totalConsumption, { kwThreshold: Infinity, decimalPlaces: 0 })} Wh
+        - Total Energy Consumption: ${formatPower(analyticsSummary.totalConsumption, { kwThreshold: Infinity, decimalPlaces: 0 })} 
         - Peak Usage Hours (Hour of day, 0-23, highest average for this device): ${analyticsSummary.peakHours?.join(', ') || 'N/A'}
 
         Based *specifically* on these metrics and the device type:
