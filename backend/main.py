@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from api.alerts import AlertsAPI
 from api.device import DeviceAPI
 from api.records import RecordsAPI
+from api.settings import SettingsAPI
 from core.database import db
 
 
@@ -42,10 +43,12 @@ app.add_middleware(
 device_api = DeviceAPI()
 record_api = RecordsAPI()
 alerts_api = AlertsAPI()
+settings_api = SettingsAPI()
 
 
 # app.include_router(oauth_router)
 app.include_router(device_api.router, prefix="/api/device", tags=["Device"])
 app.include_router(record_api.router, prefix="/api/record", tags=["Record"])
 app.include_router(alerts_api.router, prefix="/api/alert", tags=["Alert"])
+app.include_router(settings_api.router, prefix="/api/settings", tags=["Settings"])
 

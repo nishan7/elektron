@@ -3,13 +3,26 @@ import {
   Box, Card, CardContent, Typography, CircularProgress, Alert
 } from '@mui/material';
 import {
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line,
+  ReferenceLine
 } from 'recharts';
 import { formatPower } from '../utils/formatting';
 import API from '../API';
 
-// Accepts selectedDevice and selectedTimeRange as props
-const PowerAnalysisChart = ({ selectedDevice, selectedTimeRange }) => {
+// Remove mock thresholds - they will come from props
+// const POWER_THRESHOLD_WATTS = 2500; 
+// const COST_THRESHOLD_DOLLARS = 0.50; 
+
+// Accept threshold props with default values
+const PowerAnalysisChart = ({ 
+  selectedDevice, 
+  selectedTimeRange, 
+  powerThreshold = null, 
+  costThreshold = null 
+}) => {
+  // Log received props at the beginning
+  console.log("[PowerAnalysisChart] Rendering. Received Props:", { powerThreshold, costThreshold });
+
   const [chartLoading, setChartLoading] = useState(true);
   const [chartError, setChartError] = useState(null);
   const [chartData, setChartData] = useState({ hourlyData: [], trendData: [] });
@@ -95,6 +108,41 @@ const PowerAnalysisChart = ({ selectedDevice, selectedTimeRange }) => {
   // Determine title based on props
   const chartTitle = selectedDevice === 'all' ? 'Overall Power Analysis' : `Device Power Analysis`; // Simpler title for reuse
 
+  // Define threshold colors and styles for consistency
+  const powerThresholdColor = "orange";
+  const powerThresholdDash = "3 3";
+  const costThresholdColor = "#E91E63";
+  const costThresholdDash = "2 4"; // Dotted pattern
+
+  // Define tooltip formatter function separately for clarity
+  const tooltipFormatter = (value, name, props) => {
+    // props.payload contains the data for the hovered point, e.g., { hour: 10, consumption: 2600, cost: 0.65 }
+    const payload = props.payload;
+    let formattedValue = value; // Start with the original value
+    let warning = '';
+
+    if (name === "Power (W)") {
+      formattedValue = formatPower(value); // Format the power value
+      // Check against power threshold if it's valid and payload exists
+      if (payload && typeof powerThreshold === 'number' && powerThreshold > 0 && payload.consumption > powerThreshold) {
+        warning = ' (Threshold Exceeded)';
+      }
+    } else if (name === "Cost ($)") {
+      formattedValue = `$${Number(value).toFixed(2)}`; // Format the cost value
+      // Check against cost threshold if it's valid and payload exists
+      if (payload && typeof costThreshold === 'number' && costThreshold > 0 && payload.cost > costThreshold) {
+        warning = ' (Threshold Exceeded)';
+      }
+    } else if (name === "Avg Power (W)") { // Handle the daily trend chart case
+       formattedValue = formatPower(value); 
+       // Decide if/how thresholds apply to daily averages
+       // if (payload && typeof powerThreshold === 'number' && powerThreshold > 0 && payload.consumption > powerThreshold) { warning = ' (Threshold Exceeded)'; }
+    }
+    
+    // Combine formatted value and warning message
+    return [`${formattedValue}${warning}`, name];
+  };
+
   return (
     <Card sx={{mb: { xs: 2, md: 0 }}}> {/* Adjust margin as needed */}
       <CardContent>
@@ -113,19 +161,79 @@ const PowerAnalysisChart = ({ selectedDevice, selectedTimeRange }) => {
             (<Box display="flex" justifyContent="center" alignItems="center" height="100%"><Alert severity="error">{chartError || 'Error loading chart data.'}</Alert></Box>) :
           selectedTimeRange === '24h' && chartData.hourlyData?.length > 0 ? 
             (<ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData.hourlyData}>
+              <LineChart data={chartData.hourlyData} height={300}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="hour" tickFormatter={(tick) => `${tick}:00`} name="Hour"/>
-                <YAxis yAxisId="left" orientation="left" stroke="#8884d8" domain={[0, 'auto']} />
-                <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" tickFormatter={(value) => `$${value.toFixed(2)}`}/>
-                <Tooltip formatter={(value, name, props) => {
-                    if (name === "Power (W)") return [formatPower(value), name];
-                    if (name === "Cost ($)") return [`$${Number(value).toFixed(2)}`, name];
-                    return [value, name];
-                }}/>
+                <YAxis 
+                  yAxisId="left" 
+                  orientation="left" 
+                  stroke="#8884d8" 
+                  domain={[0, 'auto']} 
+                />
+                <YAxis 
+                  yAxisId="right" 
+                  orientation="right" 
+                  stroke="#82ca9d" 
+                  tickFormatter={(value) => `$${value.toFixed(2)}`}
+                />
+                <Tooltip formatter={tooltipFormatter}/>
                 <Legend />
+
+                {/* Add Dummy lines for Legend */}
+                {typeof powerThreshold === 'number' && powerThreshold > 0 && (
+                  <Line 
+                    dataKey="dummyPowerThreshold" // Non-existent data key
+                    name={`Power Threshold (${formatPower(powerThreshold)})`} 
+                    stroke={powerThresholdColor} // Uses the updated powerThresholdColor
+                    strokeDasharray={powerThresholdDash} 
+                    strokeWidth={2}
+                    legendType="line"
+                    connectNulls={false}
+                    dot={false}
+                    activeDot={false}
+                    yAxisId="left"
+                  />
+                )}
+                 {typeof costThreshold === 'number' && costThreshold > 0 && (
+                   <Line 
+                    dataKey="dummyCostThreshold" // Non-existent data key
+                    name={`Cost Threshold ($${Number(costThreshold).toFixed(2)})`} 
+                    stroke={costThresholdColor} // Uses the updated costThresholdColor
+                    strokeDasharray={costThresholdDash} 
+                    strokeWidth={2}
+                    legendType="line"
+                    connectNulls={false}
+                    dot={false}
+                    activeDot={false}
+                    yAxisId="right"
+                  />
+                )}
+
+                {/* Real Data Lines - Render AFTER dummy lines */}
                 <Line yAxisId="left" type="monotone" dataKey="consumption" name="Power (W)" stroke="#8884d8" activeDot={{ r: 8 }} dot={{r:3}} />
                 <Line yAxisId="right" type="monotone" dataKey="cost" name="Cost ($)" stroke="#82ca9d" activeDot={{ r: 8 }} dot={{r:3}} />
+
+                {/* Reference Lines - Render AFTER real lines? Or before? Test placement. Render after dummy legend lines. */}
+                {typeof powerThreshold === 'number' && powerThreshold > 0 && (
+                  <ReferenceLine 
+                    y={Number(powerThreshold)} 
+                    yAxisId="left" 
+                    stroke={powerThresholdColor} // Uses the updated powerThresholdColor
+                    strokeDasharray={powerThresholdDash} 
+                  />
+                )}
+                {typeof costThreshold === 'number' && costThreshold > 0 && (
+                  <ReferenceLine 
+                    y={Number(costThreshold)} 
+                    yAxisId="right" 
+                    stroke={costThresholdColor} // Uses the updated costThresholdColor
+                    strokeDasharray={costThresholdDash}
+                  />
+                )}
+                
+                {/* Render Legend last */}
+                <Legend /> 
+
               </LineChart>
             </ResponsiveContainer>) :
           selectedTimeRange !== '24h' && chartData.trendData?.length > 0 ? 
@@ -133,13 +241,19 @@ const PowerAnalysisChart = ({ selectedDevice, selectedTimeRange }) => {
               <LineChart data={chartData.trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" name="Date" /> 
-                <YAxis yAxisId="left" orientation="left" stroke="#8884d8" domain={[0, 'auto']} />
-                <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" tickFormatter={(value) => `$${value.toFixed(2)}`}/>
-                <Tooltip formatter={(value, name, props) => {
-                    if (name === "Avg Power (W)") return [formatPower(value), name];
-                    if (name === "Cost ($)") return [`$${Number(value).toFixed(2)}`, name];
-                    return [value, name];
-                }}/>
+                <YAxis 
+                  yAxisId="left" 
+                  orientation="left" 
+                  stroke="#8884d8" 
+                  domain={[0, 'auto']} 
+                />
+                <YAxis 
+                  yAxisId="right" 
+                  orientation="right" 
+                  stroke="#82ca9d" 
+                  tickFormatter={(value) => `$${value.toFixed(2)}`}
+                />
+                <Tooltip formatter={tooltipFormatter}/>
                 <Legend />
                 <Line yAxisId="left" type="monotone" dataKey="consumption" name="Avg Power (W)" stroke="#8884d8" activeDot={{ r: 8 }} />
                 <Line yAxisId="right" type="monotone" dataKey="cost" name="Cost ($)" stroke="#82ca9d" activeDot={{ r: 8 }} />
