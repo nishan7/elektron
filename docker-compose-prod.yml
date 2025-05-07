@@ -21,6 +21,9 @@ services:
     environment:
       - MONGO_URI=mongodb+srv://cmpe-272:cmpe-272@cluster0.crznvzq.mongodb.net/elektron?retryWrites=true&w=majority&appName=Cluster0
       - KAFKA_BOOTSTRAP_SERVER=kafka:9092
+      - MAILJET_API_KEY="70fd675f4b25b68b6d6ce5393d83b54e"
+      - MAILJET_SECRET_KEY="4d6fea1b4164858bdc1f2a3fe9908752"
+      - MAILJET_SENDER_EMAIL="noreplybooktable@gmail.com"
 
 
 
