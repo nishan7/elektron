@@ -15,6 +15,7 @@ import {
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { formatPower } from '../utils/formatting';
 
 const DeviceAnalytics = () => {
   const [loading, setLoading] = useState(true);
@@ -115,8 +116,8 @@ const DeviceAnalytics = () => {
     // --- ** REFINED PROMPT FOR SPECIFICITY ** ---
     const prompt = `
       Analyze the following power usage data for a device identified as type "${deviceTypeForPrompt}":
-      - Average Consumption: ${powerDetailsForPrompt.averageW?.toFixed(1)} W
-      - Peak Consumption: ${powerDetailsForPrompt.peakW?.toFixed(1)} W
+      - Average Consumption: ${formatPower(powerDetailsForPrompt.averageW, { decimalPlaces: 1 })}
+      - Peak Consumption: ${formatPower(powerDetailsForPrompt.peakW, { decimalPlaces: 1 })}
       - Peak Usage Hours: ${powerDetailsForPrompt.peakHours?.join(', ')}:00
       - Recent Trend: ${powerDetailsForPrompt.trendVsPeriod || 'N/A'}
       - Current Sustainability Score: ${sustainabilityScore}%
@@ -169,7 +170,7 @@ const DeviceAnalytics = () => {
               <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} size="small">Export Report</Button>
             </Box>
             <Grid container spacing={2} sx={{ mb: 3 }}>
-               <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Current Power (Avg)</Typography><Typography variant="h5" sx={{ mb: 1 }}>{displayData.currentConsumption?.toFixed(1) ?? 'N/A'} W</Typography></CardContent></Card></Grid>
+               <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Current Power (Avg)</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(displayData.currentConsumption, { decimalPlaces: 1 })}</Typography></CardContent></Card></Grid>
                <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Cost Savings (Est)</Typography><Typography variant="h5" sx={{ mb: 1 }}>${displayMetrics.costSavings}</Typography></CardContent></Card></Grid>
                <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Efficiency Score</Typography><Typography variant="h5" sx={{ mb: 1 }}>{displayMetrics.efficiency}%</Typography></CardContent></Card></Grid>
                <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Sustainability Score</Typography><Typography variant="h5" sx={{ mb: 1 }}>{displayMetrics.carbonReduction}%</Typography></CardContent></Card></Grid> {/* Changed to use displayMetrics */}
