@@ -10,8 +10,8 @@ services:
       - MONGO_URI=mongodb://root:example@mongo:27017/elektron?authSource=admin
       - KAFKA_BOOTSTRAP_SERVER=kafka:9092
     depends_on:
-      - kafka  #   Ensure Kafka starts before backend
       - mongo
+      - mongo-express
 
   scheduler:
     build:
