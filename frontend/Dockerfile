@@ -12,7 +12,7 @@ RUN npm install
 
 # Set node memory limit
 ENV NODE_OPTIONS=--max-old-space-size=2048
-ENV REACT_APP_API_URL=http://18.215.147.51/api
+ENV REACT_APP_API_URL=http://18.215.147.51
 ENV REACT_APP_GEMINI_API_KEY=AIzaSyDqlpgkqFKsBKXOknT9oWvXF5QdNWyeTdg
 # Now copy only the source files (not node_modules, build etc.)
 COPY . .
