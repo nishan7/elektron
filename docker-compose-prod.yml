@@ -22,18 +22,6 @@ services:
       - mongo
       - mongo-express
 
-  scheduler:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    command: [ "bash", "scheduler/run_scripts.sh" ]
-    volumes:
-      - ./backend:/app
-    environment:
-      - MONGO_URI=mongodb://root:example@mongo:27017/elektron?authSource=admin
-      - KAFKA_BOOTSTRAP_SERVER=kafka:9092
-    depends_on:
-      - kafka  #   Ensure Kafka starts before backend
 
 
   frontend:
@@ -79,5 +67,4 @@ services:
 
 volumes:
   mongodb_data:
-  kafka_data:
-    driver: local
+
