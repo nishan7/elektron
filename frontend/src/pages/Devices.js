@@ -63,7 +63,7 @@ const Devices = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await API.get('/api/device');
+      const response = await API.get('/api/device/');
       setDevices(response.data || []);
     } catch (err) {
       console.error("Failed to fetch devices:", err);
@@ -126,11 +126,11 @@ const Devices = () => {
         // Create a shallow copy and remove id/_id before sending
         const { id, _id, created_at, updated_at, ...updatePayload } = currentDevice; 
         // Also remove created_at and updated_at as these should be managed by backend
-        await API.put(`/api/device/${deviceIdToEdit}`, updatePayload); // Send payload without id/_id
+        await API.put(`/api/device/${deviceIdToEdit}/`, updatePayload); // Send payload without id/_id
       } else {
         // For creation, backend handles ID. If currentDevice contains id/_id from a previous edit session, remove it.
         const { id, _id, created_at, updated_at, ...createPayload } = currentDevice;
-        await API.post('/api/device', createPayload);
+        await API.post('/api/device/', createPayload);
       }
       fetchDevices(); // Refresh list
       handleCloseDialogs();
@@ -143,7 +143,7 @@ const Devices = () => {
   const handleDeleteDevice = async () => {
     if (!deviceIdToDelete) return;
     try {
-      await API.delete(`/api/device/${deviceIdToDelete}`);
+      await API.delete(`/api/device/${deviceIdToDelete}/`);
       fetchDevices(); // Refresh list
       handleCloseDialogs();
     } catch (err) {
