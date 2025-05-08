@@ -299,18 +299,6 @@ class RecordsAPI(BaseCRUDAPI[Record]):
         pipeline = [
             {"$match": match_conditions},
             {
-                "$addFields": {
-                    "device_obj_id": {
-                        "$convert": {
-                            "input": "$device_id",
-                            "to": "objectId",
-                            "onError": None,
-                            "onNull": None
-                        }
-                    }
-                }
-            },
-            {
                 "$lookup": {
                     "from": "devices",
                     "localField": "device_id",
