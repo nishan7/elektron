@@ -84,7 +84,7 @@ function AlertsList({ alerts, onAlertsChange }) {
     console.log("Attempting to resolve. alert_Id received by handleResolveAlert:", alert_Id);
     setResolvingId(alert_Id);
     try {
-      const response = await API.post(`/api/alert/${alert_Id}/resolve`);
+      const response = await API.post(`/api/alert/${alert_Id}/resolve/`);
       const updatedAlertFromServer = response.data; 
       
       if (onAlertsChange) {

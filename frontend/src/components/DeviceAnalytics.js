@@ -204,7 +204,7 @@ const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange
                {analyticsSummary.minPower !== null && 
                  <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Min Power (Standby)</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.minPower ?? 0)}</Typography></CardContent></Card></Grid>
                }
-               <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Total Consumption</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.totalConsumption ?? 0, { kwThreshold: Infinity, decimalPlaces: 0 })} Wh</Typography></CardContent></Card></Grid>
+               <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Total Consumption</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.totalConsumption ?? 0, { kwThreshold: Infinity, decimalPlaces: 0 })} </Typography></CardContent></Card></Grid>
             </Grid>
           </CardContent>
         </Card>
