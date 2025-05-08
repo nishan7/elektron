@@ -100,7 +100,7 @@ function DeviceDetails({ deviceId, onDeviceUpdated, onDeviceDeleted }) {
   const handleEditSubmit = async () => {
     try {
       setLoading(true);
-      const response = await axios.put(`${config.apiUrl}/api/device/${deviceId}`, editForm);
+      const response = await axios.put(`${config.apiUrl}/api/device/${deviceId}/`, editForm);
       setDevice(response.data);
       setEditDialogOpen(false);
       if (onDeviceUpdated) {
@@ -117,7 +117,7 @@ function DeviceDetails({ deviceId, onDeviceUpdated, onDeviceDeleted }) {
   const handleDeleteSubmit = async () => {
     try {
       setLoading(true);
-      await axios.delete(`${config.apiUrl}/api/device/${deviceId}`);
+      await axios.delete(`${config.apiUrl}/api/device/${deviceId}/`);
       setDeleteDialogOpen(false);
       if (onDeviceDeleted) {
         onDeviceDeleted(deviceId);
