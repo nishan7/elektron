@@ -1,0 +1,98 @@
+[
+  {
+    "_id": "681ba1b7a0d0acf503fb3eca",
+    "device_id": "681b8755128c377665dd5d31",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T22:25:02.337000",
+    "message": "Power outage detected",
+    "metric": "Power",
+    "type": "critical",
+    "resolved": true,
+    "deviceName": "Thermostat",
+    "location": "Living Room"
+  },
+  {
+    "_id": "681ba910ad4bdeee11f441c2",
+    "device_id": "681b8755128c377665dd5d31",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T18:58:44.810000",
+    "message": "Power outage detected",
+    "metric": "Power",
+    "type": "critical",
+    "resolved": true,
+    "deviceName": "Thermostat",
+    "location": "Kitchen"
+  },
+  {
+    "_id": "681bade84c1f4cb922a6bba1",
+    "device_id": "681b8755128c377665dd5d31",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T19:01:10.051000",
+    "message": "Power outage.",
+    "metric": "Power",
+    "type": "Warning",
+    "resolved": true,
+    "deviceName": "Thermostat",
+    "location": "Kitchen"
+  },
+  {
+    "_id": "681bcc1d13b0996a78aebfb8",
+    "device_id": "681b88df891e8bddeb948477",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T21:29:20.066000",
+    "message": "Power outage.",
+    "metric": "Power",
+    "type": "Warning",
+    "resolved": true,
+    "deviceName": "Fridge",
+    "location": "Kitchen"
+  },
+  {
+    "_id": "681bce2813b0996a78aebfb9",
+    "device_id": "681b88df891e8bddeb948477",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T21:29:39.223000",
+    "message": "Power outage.",
+    "metric": "Power",
+    "type": "Warning",
+    "resolved": true,
+    "deviceName": "Fridge",
+    "location": "Kitchen"
+  },
+  {
+    "_id": "681bcf443763b1622d30a33d",
+    "device_id": "681b88df891e8bddeb948477",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T21:29:22.571000",
+    "message": "Power outage.",
+    "metric": "Power",
+    "type": "Warning",
+    "resolved": true,
+    "deviceName": "Fridge",
+    "location": "Kitchen"
+  },
+  {
+    "_id": "681bcfb53d36c90e0bb7f809",
+    "device_id": "681b88df891e8bddeb948477",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T21:29:37.346000",
+    "message": "Power outage.",
+    "metric": "Power",
+    "type": "Warning",
+    "resolved": true,
+    "deviceName": "Fridge",
+    "location": "Kitchen"
+  },
+  {
+    "_id": "681bde62be8feed13a8ec0d1",
+    "device_id": "681b88df891e8bddeb948477",
+    "start_time": "2023-10-28T12:00:00",
+    "end_time": "2025-05-07T22:48:07.801000",
+    "message": "Power outage 2",
+    "metric": "Power",
+    "type": "Warning",
+    "resolved": true,
+    "deviceName": "Fridge",
+    "location": "Kitchen"
+  }
+]

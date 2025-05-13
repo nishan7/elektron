@@ -1,149 +1,238 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-  Paper,
-  Typography,
+  Box,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
-  Box,
+  ListItemIcon,
+  Typography,
   Chip,
-  Divider,
-  CircularProgress,
-  Alert,
+  IconButton,
+  Collapse,
+  Card,
+  CardContent,
+  Grid,
+  Button,
 } from '@mui/material';
 import {
+  CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
   Info as InfoIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Schedule as ScheduleIcon,
+  LocationOn as LocationIcon,
+  DeviceHub as DeviceIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
-import config from '../config';
+import API from '../API';
 
-const AlertsList = () => {
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+function AlertsList({ alerts, onAlertsChange }) {
+  const [expandedAlert, setExpandedAlert] = React.useState(null);
+  const [resolvingId, setResolvingId] = React.useState(null);
 
-  const getSeverityIcon = (severity) => {
-    switch (severity.toLowerCase()) {
+  const getSeverityIcon = (type) => {
+    switch (type.toLowerCase()) {
       case 'critical':
         return <ErrorIcon color="error" />;
       case 'warning':
         return <WarningIcon color="warning" />;
-      default:
+      case 'info':
         return <InfoIcon color="info" />;
+      default:
+        return <CheckCircleIcon color="success" />;
     }
   };
 
-  const getSeverityChip = (severity) => {
-    switch (severity.toLowerCase()) {
+  const getSeverityColor = (type) => {
+    switch (type.toLowerCase()) {
       case 'critical':
-        return <Chip label="Critical" color="error" size="small" />;
+        return 'error';
       case 'warning':
-        return <Chip label="Warning" color="warning" size="small" />;
+        return 'warning';
+      case 'info':
+        return 'info';
       default:
-        return <Chip label="Info" color="info" size="small" />;
+        return 'success';
     }
   };
 
   const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString();
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    
+    // Less than 1 hour
+    if (diff < 3600000) {
+      const minutes = Math.floor(diff / 60000);
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    }
+    // Less than 24 hours
+    if (diff < 86400000) {
+      const hours = Math.floor(diff / 3600000);
+      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    }
+    // More than 24 hours
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      try {
-        setLoading(true);
-        // First get all devices
-        const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
-        const devices = devicesResponse.data;
-        
-        // Then fetch alerts for each device
-        const alertsPromises = devices.map(device => 
-          axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
-            params: { resolved: false, limit: 10 }
-          })
+  const handleExpandClick = (alert_Id) => {
+    setExpandedAlert(expandedAlert === alert_Id ? null : alert_Id);
+  };
+
+  const handleResolveAlert = async (alert_Id) => {
+    console.log("Attempting to resolve. alert_Id received by handleResolveAlert:", alert_Id);
+    setResolvingId(alert_Id);
+    try {
+      const response = await API.post(`/api/alert/${alert_Id}/resolve`);
+      const updatedAlertFromServer = response.data; 
+      
+      if (onAlertsChange) {
+        onAlertsChange(prevAlerts => 
+          prevAlerts.map(alert => 
+            alert._id === alert_Id ? { ...alert, ...updatedAlertFromServer, resolved: true, end_time: updatedAlertFromServer.end_time } : alert
+          )
         );
-        
-        const alertsResponses = await Promise.all(alertsPromises);
-        const allAlerts = alertsResponses.flatMap(response => response.data);
-        
-        // Sort alerts by timestamp
-        const sortedAlerts = allAlerts.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
-        
-        setAlerts(sortedAlerts);
-      } catch (error) {
-        console.error('Error fetching alerts:', error);
-        setError('Failed to fetch alerts');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchAlerts();
-    const interval = setInterval(fetchAlerts, 30000); // Refresh every 30 seconds
+      window.location.reload();
 
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {error}
-      </Alert>
-    );
-  }
-
-  if (alerts.length === 0) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography variant="body1" color="textSecondary" align="center">
-          No active alerts
-        </Typography>
-      </Box>
-    );
-  }
+    } catch (error) {
+      console.error("Error resolving alert:", error);
+      setResolvingId(null);
+    }
+  };
 
   return (
     <List>
-      {alerts.map((alert, index) => (
-        <React.Fragment key={alert.id}>
-          <ListItem>
+      {alerts.map((alert) => (
+        <Card key={alert._id} sx={{ mb: 2, borderLeft: `4px solid ${getSeverityColor(alert.type)}` }}>
+          <ListItem
+            button
+            onClick={() => handleExpandClick(alert._id)}
+            sx={{
+              opacity: alert.resolved ? 0.7 : 1,
+              '&:hover': {
+                backgroundColor: 'action.hover',
+              },
+            }}
+          >
             <ListItemIcon>
-              {getSeverityIcon(alert.severity)}
+              {getSeverityIcon(alert.type)}
             </ListItemIcon>
             <ListItemText
               primary={
-                <Box display="flex" alignItems="center" gap={1}>
-                  <Typography variant="subtitle1">
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Typography variant="subtitle1" sx={{ textDecoration: alert.resolved ? 'line-through' : 'none' }}>
                     {alert.message}
                   </Typography>
-                  {getSeverityChip(alert.severity)}
+                  <Box display="flex" alignItems="center" gap={1}>
+                    {alert.resolved && (
+                      <Chip 
+                        label="RESOLVED"
+                        color="success"
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
+                    <Chip
+                      label={alert.type.toUpperCase()}
+                      color={getSeverityColor(alert.type)}
+                      size="small"
+                    />
+                  </Box>
                 </Box>
               }
               secondary={
-                <Typography variant="body2" color="textSecondary">
-                  {formatTimestamp(alert.timestamp)}
-                </Typography>
+                <Box display="flex" alignItems="center" flexWrap="wrap" gap={1}>
+                  <LocationIcon fontSize="small" color="action" />
+                  <Typography variant="body2" color="textSecondary">
+                    {alert.location || 'Unknown Location'}
+                  </Typography>
+                  <DeviceIcon fontSize="small" color="action" sx={{ ml: 1 }} />
+                  <Typography variant="body2" color="textMuted">
+                    {alert.deviceName || 'Unknown Device'}
+                  </Typography>
+                  <ScheduleIcon fontSize="small" color="action" sx={{ ml: 1 }} />
+                  <Typography variant="body2" color="textMuted">
+                    {formatTimestamp(alert.start_time)}
+                  </Typography>
+                </Box>
               }
             />
+            <IconButton>
+              {expandedAlert === alert._id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
           </ListItem>
-          {index < alerts.length - 1 && <Divider />}
-        </React.Fragment>
+          
+          <Collapse in={expandedAlert === alert._id} timeout="auto" unmountOnExit>
+            <CardContent>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                    Alert Details
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <LocationIcon color="action" />
+                    <Typography variant="body2">
+                      Location: {alert.location || 'N/A'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <DeviceIcon color="action" />
+                    <Typography variant="body2">
+                      Device: {alert.deviceName || 'Unknown Device'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <ScheduleIcon color="action" />
+                    <Typography variant="body2">
+                      Time: {formatTimestamp(alert.start_time)}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="textSecondary">
+                    Details: {alert.description || alert.message || 'No additional details available.'}
+                  </Typography>
+                </Grid>
+                {!alert.resolved && (
+                  <Grid item xs={12} sx={{ mt: 1, textAlign: 'right' }}>
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      size="small"
+                      onClick={() => {
+                        console.log("Resolve button clicked. Full alert object:", JSON.parse(JSON.stringify(alert)));
+                        console.log("Value of alert._id BEFORE calling handleResolveAlert:", alert._id);
+                        handleResolveAlert(alert._id);
+                      }}
+                      disabled={resolvingId === alert._id}
+                    >
+                      {resolvingId === alert._id ? 'Resolving...' : 'Resolve Alert'}
+                    </Button>
+                  </Grid>
+                )}
+                {alert.resolved && alert.end_time && (
+                   <Grid item xs={12} sx={{ mt: 1 }}>
+                     <Typography variant="caption" color="textSecondary">
+                       Resolved on: {new Date(alert.end_time).toLocaleString()}
+                     </Typography>
+                   </Grid>
+                )}
+              </Grid>
+            </CardContent>
+          </Collapse>
+        </Card>
       ))}
     </List>
   );
-};
+}
 
 export default AlertsList; 

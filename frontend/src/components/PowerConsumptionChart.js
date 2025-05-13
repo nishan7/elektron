@@ -12,6 +12,10 @@ import {
   MenuItem,
   ToggleButtonGroup,
   ToggleButton,
+  Button,
+  ButtonGroup,
+  Card,
+  CardContent, TextField,
 } from '@mui/material';
 import {
   LineChart,
@@ -22,147 +26,132 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
-import axios from 'axios';
-import config from '../config';
+import API from "../API";
+import { formatPower } from '../utils/formatting';
 
-// Sample data generator functions
-const generateHourlyData = (deviceId = 'all') => {
-  const data = [];
-  const baseLoad = deviceId === 'all' ? 2000 : 1000; // Base load in watts
-  const peakHours = [8, 9, 10, 17, 18, 19]; // Peak usage hours
 
-  for (let hour = 0; hour < 24; hour++) {
-    let load = baseLoad;
-    
-    // Add peak load during peak hours
-    if (peakHours.includes(hour)) {
-      load += Math.random() * (deviceId === 'all' ? 3000 : 1500) + (deviceId === 'all' ? 1000 : 500);
-    } else {
-      load += Math.random() * (deviceId === 'all' ? 1000 : 500);
-    }
-
-    // Add some randomness
-    load += (Math.random() - 0.5) * (deviceId === 'all' ? 500 : 250);
-
-    data.push({
-      hour: `${hour}:00`,
-      consumption: Math.round(load),
-      cost: Math.round((load / 1000) * 0.15), // $0.15 per kWh
-    });
+const generateHourlyData = async (deviceId, startDate, endDate) => {
+  const params = {
+    start_time: `${startDate}T00:00:00Z`,
+    end_time: `${endDate}T23:59:59Z`
+  };
+  console.log(deviceId)
+  if (deviceId !== null && deviceId !== 'all') {
+    params.device_id = deviceId;
   }
-  return data;
+  const response = await API.get('/api/record/hourly-summary', { params });
+  return response.data;
 };
 
-const generateDailyData = (deviceId = 'all') => {
-  const data = [];
-  const baseLoad = deviceId === 'all' ? 1500 : 750;
-  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const generateDailyData = async (deviceId, startDate, endDate) => {
+  const params = {
+    start_time: `${startDate}T00:00:00Z`,
+    end_time: `${endDate}T23:59:59Z`
+  };
+  if (deviceId !== null && deviceId !== 'all') {
+    params.device_id = deviceId;
+  }
+  const response = await API.get('/api/record/daily-summary', { params });
+  return response.data;
+};
 
-  weekdays.forEach((day, index) => {
-    let load = baseLoad;
-    
-    // Higher consumption on weekdays
-    if (index < 5) {
-      load += Math.random() * (deviceId === 'all' ? 2000 : 1000) + (deviceId === 'all' ? 1000 : 500);
-    } else {
-      load += Math.random() * (deviceId === 'all' ? 1000 : 500);
+const generateMonthlyData = async (deviceId, year) => {
+  const params = { year: year };
+  const response = await API.get('/api/record/monthly-summary', { params });
+  return response.data;
+};
+
+
+// Add these utility functions after the sample data generators
+const calculateStatistics = (data) => {
+  const values = data.map(d => d.consumption);
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+  const stdDev = Math.sqrt(variance);
+  return { mean, stdDev };
+};
+
+const detectAnomalies = (data, sensitivity = 2) => {
+  const { mean, stdDev } = calculateStatistics(data);
+  return data.map(point => ({
+    ...point,
+    isAnomaly: Math.abs(point.consumption - mean) > (sensitivity * stdDev),
+    anomalyScore: Math.abs(point.consumption - mean) / stdDev,
+    expectedRange: {
+      min: mean - (sensitivity * stdDev),
+      max: mean + (sensitivity * stdDev)
     }
-
-    data.push({
-      day,
-      consumption: Math.round(load * 24), // Daily consumption
-      cost: Math.round((load * 24 / 1000) * 0.15), // Daily cost
-    });
-  });
-  return data;
+  }));
 };
 
-const generateMonthlyData = (deviceId = 'all') => {
-  const data = [];
-  const baseLoad = deviceId === 'all' ? 2000 : 1000;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  months.forEach((month, index) => {
-    let load = baseLoad;
-    
-    // Higher consumption in summer and winter months
-    if (index >= 5 && index <= 8) { // Summer months
-      load += Math.random() * (deviceId === 'all' ? 3000 : 1500) + (deviceId === 'all' ? 2000 : 1000);
-    } else if (index >= 11 || index <= 1) { // Winter months
-      load += Math.random() * (deviceId === 'all' ? 2500 : 1250) + (deviceId === 'all' ? 1500 : 750);
-    } else {
-      load += Math.random() * (deviceId === 'all' ? 1500 : 750);
-    }
-
-    data.push({
-      month,
-      consumption: Math.round(load * 24 * 30), // Monthly consumption
-      cost: Math.round((load * 24 * 30 / 1000) * 0.15), // Monthly cost
-    });
-  });
-  return data;
+// Helper to determine API endpoint and params based on selectedTimeRange
+const getDataConfig = (timeRange, deviceId, startDate, endDate, year) => {
+  switch (timeRange) {
+    case '24h':
+      return {
+        endpoint: '/api/record/hourly-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'hour',
+      };
+    case '7d':
+      return {
+        endpoint: '/api/record/daily-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'day',
+      };
+    case '30d': // For 30 days, we might still want daily summary for a longer period
+      return {
+        endpoint: '/api/record/daily-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'day',
+      };
+    // Add a case for 'monthly' if your parent component can send that, or adapt '30d' to use monthly-summary if appropriate
+    // case 'monthly': 
+    //   return {
+    //     endpoint: '/api/record/monthly-summary',
+    //     params: { year: year, device_id: deviceId === 'all' ? undefined : deviceId },
+    //     dataKey: 'month',
+    //   };
+    default:
+      return {
+        endpoint: '/api/record/hourly-summary',
+        params: { start_time: `${startDate}T00:00:00Z`, end_time: `${endDate}T23:59:59Z`, device_id: deviceId === 'all' ? undefined : deviceId },
+        dataKey: 'hour',
+      };
+  }
 };
 
-// Sample devices data
-const sampleDevices = [
-  { id: '1', name: 'Main Panel', type: 'panel', status: 'active' },
-  { id: '2', name: 'HVAC System', type: 'hvac', status: 'active' },
-  { id: '3', name: 'Lighting Circuit', type: 'lighting', status: 'active' },
-  { id: '4', name: 'Kitchen Appliances', type: 'appliance', status: 'active' },
-  { id: '5', name: 'Office Equipment', type: 'equipment', status: 'active' },
-];
-
-function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', onDeviceChange, deviceId }) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState('hourly');
+function PowerConsumptionChart({ selectedDevice = 'all', selectedTimeRange }) {
+  const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [devices, setDevices] = useState([]);
-  const [currentDevice, setCurrentDevice] = useState(deviceId || selectedDevice);
-
-  const fetchSampleData = useCallback(() => {
-    setLoading(true);
-    let sampleData;
-    switch (timeRange) {
-      case 'hourly':
-        sampleData = generateHourlyData(currentDevice);
-        break;
-      case 'daily':
-        sampleData = generateDailyData(currentDevice);
-        break;
-      case 'monthly':
-        sampleData = generateMonthlyData(currentDevice);
-        break;
-      default:
-        sampleData = generateHourlyData(currentDevice);
-    }
-    setData(sampleData);
-    setLoading(false);
-  }, [timeRange, currentDevice]);
+  const [thresholds, setThresholds] = useState({
+    warning: 80,
+    critical: 90,
+  });
+  const [xAxisDataKey, setXAxisDataKey] = useState('hour');
 
   const fetchData = useCallback(async () => {
-    if (useSampleData) {
-      fetchSampleData();
-      return;
-    }
+    if (!selectedDevice) return;
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const endTime = new Date();
-      const startTime = new Date();
-      
-      // Set the time range based on the selected option
-      switch (timeRange) {
-        case 'hourly':
-          startTime.setHours(startTime.getHours() - 24);
+      let startDate, endDate, year;
+      const today = new Date();
+      switch (selectedTimeRange) {
+        case '7d':
+          endDate = new Date(today);
+          startDate = new Date(today.setDate(today.getDate() - 6)); // Last 7 days including today
           break;
-        case 'daily':
-          startTime.setDate(startTime.getDate() - 7);
+        case '30d':
+          endDate = new Date(today);
+          startDate = new Date(today.setDate(today.getDate() - 29)); // Last 30 days including today
           break;
-        case 'monthly':
-          startTime.setMonth(startTime.getMonth() - 1);
-          break;
+        // case 'monthly': // if you add this option in parent
+        //   year = new Date().getFullYear().toString(); // Or a selected year
+        //   break;
+        case '24h':
         default:
           startTime.setHours(startTime.getHours() - 24);
       }
@@ -204,333 +193,116 @@ function PowerConsumptionChart({ useSampleData = false, selectedDevice = 'all', 
         readings = response.data;
       }
 
-      console.log('Raw Readings:', readings);
-      console.log('Number of Readings:', readings.length);
+      const startDateStr = startDate?.toISOString().split('T')[0];
+      const endDateStr = endDate?.toISOString().split('T')[0];
 
-      // Process and format the readings based on time range
-      const processedData = processReadings(readings);
-      console.log('Processed Data:', processedData);
-      console.log('Number of Processed Data Points:', processedData.length);
+      const { endpoint, params, dataKey } = getDataConfig(selectedTimeRange, selectedDevice, startDateStr, endDateStr, year);
+      setXAxisDataKey(dataKey);
       
-      setData(processedData);
+      const response = await API.get(endpoint, { params });
+      const dataWithAnomalies = detectAnomalies(response.data || []);
+      setData(dataWithAnomalies);
     } catch (error) {
-      console.error('Error fetching power consumption data:', error);
-      setError('Failed to fetch power consumption data');
-      fetchSampleData();
+      console.error('Failed to fetch power consumption data:', error);
+      setData([]);
     } finally {
       setLoading(false);
     }
-  }, [timeRange, currentDevice, useSampleData, fetchSampleData]);
+  }, [selectedDevice, selectedTimeRange]);
 
-  // Update currentDevice when deviceId or selectedDevice prop changes
   useEffect(() => {
-    console.log('Device changed:', deviceId || selectedDevice);
-    setCurrentDevice(deviceId || selectedDevice);
-    if (!useSampleData) {
-      fetchData();
-    }
-  }, [deviceId, selectedDevice]);
+    fetchData();
+  }, [fetchData]);
 
-  // Fetch devices on component mount
-  useEffect(() => {
-    fetchDevices();
-  }, []);
-
-  // Fetch data when timeRange, currentDevice, or useSampleData changes
-  useEffect(() => {
-    console.log('Fetching data for device:', currentDevice);
-    if (useSampleData) {
-      fetchSampleData();
-    } else {
-      fetchData();
-    }
-  }, [timeRange, currentDevice, useSampleData, fetchData]);
-
-  // Set up refresh interval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!useSampleData) {
-        fetchData();
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [useSampleData, fetchData]);
-
-  const fetchDevices = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/device`);
-      setDevices(response.data);
-    } catch (error) {
-      console.error('Error fetching devices:', error);
-      setError('Failed to fetch devices');
-      setDevices(sampleDevices);
-    } finally {
-      setLoading(false);
-    }
+  const getPowerStatus = (power) => {
+    const maxPower = 1000; // Placeholder until powerRating is properly sourced
+    const percentage = (power / maxPower) * 100;
+    if (percentage >= thresholds.critical) return 'critical';
+    if (percentage >= thresholds.warning) return 'warning';
+    return 'normal';
   };
 
-  const handleTimeRangeChange = (event, newValue) => {
-    if (newValue !== null) {
-      setTimeRange(newValue);
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const point = payload[0].payload;
+      const power = point.consumption;
+      const cost = point.cost;
+      const status = getPowerStatus(power);
+      const isAnomaly = point.isAnomaly;
+
+      return (
+        <Card sx={{backgroundColor: 'background.paper', opacity: 0.9}}>
+          <CardContent sx={{p:1}}>
+            <Typography variant="subtitle2">Time: {label}</Typography>
+            <Typography variant="body2" color={status === 'critical' ? 'error.main' : status === 'warning' ? 'warning.main' : 'text.primary'}>
+              Power: {formatPower(power)}
+            </Typography>
+            {cost !== undefined && (
+              <Typography variant="body2" color="text.secondary">
+                Cost: ${cost.toFixed(2)}
+              </Typography>
+            )}
+            <Typography variant="body2" color="text.secondary">
+              Status: {status.toUpperCase()}
+            </Typography>
+            {isAnomaly && (
+              <Box mt={1}>
+                <Typography variant="body2" color="error.main" sx={{ fontWeight: 'bold'}}>
+                  ⚠️ Unusual Consumption
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Range: {formatPower(point.expectedRange.min, { decimalPlaces: 0 })} - {formatPower(point.expectedRange.max, { decimalPlaces: 0 })}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Score: {point.anomalyScore?.toFixed(2) ?? 'N/A'}
+                </Typography>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      );
     }
-  };
-
-  const handleDeviceChange = (event) => {
-    const newDevice = event.target.value;
-    setCurrentDevice(newDevice);
-    if (onDeviceChange) {
-      onDeviceChange(newDevice);
-    }
-  };
-
-  const getXAxisDataKey = () => {
-    switch (timeRange) {
-      case 'hourly':
-        return 'hour';
-      case 'daily':
-        return 'day';
-      case 'monthly':
-        return 'month';
-      default:
-        return 'hour';
-    }
-  };
-
-  const processReadings = (readings) => {
-    if (!readings || readings.length === 0) {
-      return [];
-    }
-
-    const RATE_PER_KWH = 0.15; // $0.15 per kWh
-    const data = [];
-
-    switch (timeRange) {
-      case 'hourly':
-        // Group by hour
-        const hourlyData = {};
-        readings.forEach(reading => {
-          const hour = new Date(reading.timestamp).getHours();
-          if (!hourlyData[hour]) {
-            hourlyData[hour] = {
-              hour: `${hour}:00`,
-              consumption: 0,
-              count: 0,
-              totalEnergy: 0 // Watt-hours
-            };
-          }
-          hourlyData[hour].consumption += reading.power;
-          hourlyData[hour].count += 1;
-          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
-          hourlyData[hour].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
-        });
-
-        // Calculate averages and format data
-        Object.values(hourlyData).forEach(hour => {
-          const avgConsumption = Math.round(hour.consumption / hour.count);
-          const energyKWh = hour.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
-          data.push({
-            hour: hour.hour,
-            consumption: avgConsumption,
-            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the hour
-          });
-        });
-        break;
-
-      case 'daily':
-        // Group by day
-        const dailyData = {};
-        readings.forEach(reading => {
-          const day = new Date(reading.timestamp).toLocaleDateString('en-US', { weekday: 'short' });
-          if (!dailyData[day]) {
-            dailyData[day] = {
-              day,
-              consumption: 0,
-              count: 0,
-              totalEnergy: 0 // Watt-hours
-            };
-          }
-          dailyData[day].consumption += reading.power;
-          dailyData[day].count += 1;
-          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
-          dailyData[day].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
-        });
-
-        // Calculate averages and format data
-        Object.values(dailyData).forEach(day => {
-          const avgConsumption = Math.round(day.consumption / day.count);
-          const energyKWh = day.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
-          data.push({
-            day: day.day,
-            consumption: avgConsumption,
-            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the day
-          });
-        });
-        break;
-
-      case 'monthly':
-        // Group by month
-        const monthlyData = {};
-        readings.forEach(reading => {
-          const month = new Date(reading.timestamp).toLocaleDateString('en-US', { month: 'short' });
-          if (!monthlyData[month]) {
-            monthlyData[month] = {
-              month,
-              consumption: 0,
-              count: 0,
-              totalEnergy: 0 // Watt-hours
-            };
-          }
-          monthlyData[month].consumption += reading.power;
-          monthlyData[month].count += 1;
-          // Calculate energy for this reading (assuming readings are ~5 minutes apart)
-          monthlyData[month].totalEnergy += (reading.power * (5/60)); // Convert to watt-hours
-        });
-
-        // Calculate averages and format data
-        Object.values(monthlyData).forEach(month => {
-          const avgConsumption = Math.round(month.consumption / month.count);
-          const energyKWh = month.totalEnergy / 1000; // Convert watt-hours to kilowatt-hours
-          data.push({
-            month: month.month,
-            consumption: avgConsumption,
-            cost: Number((energyKWh * RATE_PER_KWH).toFixed(2)) // Cost for the month
-          });
-        });
-        break;
-    }
-
-    return data.sort((a, b) => {
-      const timeA = a[timeRange === 'hourly' ? 'hour' : timeRange === 'daily' ? 'day' : 'month'];
-      const timeB = b[timeRange === 'hourly' ? 'hour' : timeRange === 'daily' ? 'day' : 'month'];
-      return timeA.localeCompare(timeB);
-    });
+    return null;
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight={{ xs: 200, sm: 300, md: 400 }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (error) {
+  if (!data || data.length === 0) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {error}
-      </Alert>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight={{ xs: 200, sm: 300, md: 400 }}>
+        <Typography color="text.secondary">No data available for the selected period.</Typography>
+      </Box>
     );
   }
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6">
-          Power Consumption
-        </Typography>
-        <Box display="flex" gap={2}>
-          {!deviceId && (
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Device</InputLabel>
-              <Select
-                value={currentDevice}
-                label="Device"
-                onChange={handleDeviceChange}
-              >
-                <MenuItem value="all">All Devices</MenuItem>
-                {devices.map((device) => (
-                  <MenuItem key={device._id} value={device._id}>
-                    {device.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-          <ToggleButtonGroup
-            value={timeRange}
-            exclusive
-            onChange={handleTimeRangeChange}
-            size="small"
-          >
-            <ToggleButton value="hourly">Hourly</ToggleButton>
-            <ToggleButton value="daily">Daily</ToggleButton>
-            <ToggleButton value="monthly">Monthly</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-      </Box>
-
-      <Box height={400}>
+    <Box>
+      <Box height={{ xs: 300, sm: 350, md: 400 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-          >
+          <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={getXAxisDataKey()} />
-            <YAxis yAxisId="left" label={{ value: 'Power (W)', angle: -90, position: 'insideLeft' }} />
-            <YAxis yAxisId="right" orientation="right" label={{ value: 'Cost ($)', angle: 90, position: 'insideRight' }} />
-            <Tooltip />
+            <XAxis dataKey={xAxisDataKey} />
+            <YAxis yAxisId="left" />
+            <YAxis yAxisId="right" orientation="right" />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="consumption"
-              stroke="#8884d8"
-              name="Power Consumption"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="cost"
-              stroke="#82ca9d"
-              name="Cost"
-            />
+            <Line yAxisId="left" type="monotone" dataKey="consumption" strokeWidth={2} stroke={thresholds.critical ? "#1976d2" : "#8884d8" } name="Power Consumption" dot={{ r: 2 }} activeDot={{ r: 6 }}/>
+            {data[0]?.expectedRange?.max !== undefined && (
+              <ReferenceLine yAxisId="left" y={data[0].expectedRange.max} stroke="red" strokeDasharray="3 3" />
+            )}
+            {data[0]?.expectedRange?.min !== undefined && (
+              <ReferenceLine yAxisId="left" y={data[0].expectedRange.min} stroke="red" strokeDasharray="3 3" />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </Box>
-
-      <Box mt={3}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Total Consumption
-              </Typography>
-              <Typography variant="h6">
-                {data.reduce((sum, item) => sum + item.consumption, 0).toLocaleString()} W
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Peak Consumption
-              </Typography>
-              <Typography variant="h6">
-                {Math.max(...data.map(item => item.consumption)).toLocaleString()} W
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Total Cost
-              </Typography>
-              <Typography variant="h6">
-                ${data.reduce((sum, item) => sum + item.cost, 0).toLocaleString()}
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-    </Paper>
+    </Box>
   );
 }
 

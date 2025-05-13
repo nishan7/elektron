@@ -22,6 +22,7 @@ wheels/
 backend/venv
 
 # Virtual Environment
+node_modules
 venv/
 env/
 ENV/

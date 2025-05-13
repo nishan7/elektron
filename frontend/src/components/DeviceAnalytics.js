@@ -1,272 +1,253 @@
-import React, { useState, useEffect } from 'react';
+// frontend/src/components/DeviceAnalytics.js
+
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Box,
-  Paper,
-  Typography,
-  CircularProgress,
-  Alert,
-  Grid,
-  ToggleButtonGroup,
-  ToggleButton,
+  Box, Card, CardContent, Typography, Grid, CircularProgress, FormControl,
+  InputLabel, Select, MenuItem, Button, Chip, Stack, IconButton,
+  Tooltip as MuiTooltip, Alert
 } from '@mui/material';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
 } from 'recharts';
-import axios from 'axios';
+import {
+  TrendingUp as TrendingUpIcon, TrendingDown as TrendingDownIcon, Download as DownloadIcon, Info as InfoIcon
+} from '@mui/icons-material';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { formatPower } from '../utils/formatting';
+import API from '../API'; // Make sure API helper is correctly imported and configured
+import PowerAnalysisChart from './PowerAnalysisChart'; // IMPORT the new component
 
-// Sample data generator functions
-const generateDeviceData = () => {
-  const data = [];
-  const baseTemp = 35;
-  const baseLoad = 60;
-  const baseVoltage = 220;
-  const baseCurrent = 10;
+// Removed placeholder fetchDeviceAnalyticsData function
 
-  for (let hour = 0; hour < 24; hour++) {
-    data.push({
-      hour: `${hour}:00`,
-      temperature: Math.round(baseTemp + Math.random() * 10),
-      load: Math.round(baseLoad + Math.random() * 30),
-      voltage: Math.round(baseVoltage + (Math.random() - 0.5) * 10),
-      current: Math.round(baseCurrent + Math.random() * 5),
-    });
-  }
-  return data;
-};
+// Props: selectedDevice (string ID), selectedDeviceName (string), selectedTimeRange (string)
+const DeviceAnalytics = ({ selectedDevice, selectedDeviceName, selectedTimeRange }) => {
+  console.log("--- DeviceAnalytics RENDER START ---", { selectedDevice, selectedDeviceName, selectedTimeRange });
 
-const generateLoadDistribution = () => {
-  return [
-    { name: 'Lighting', value: 25 },
-    { name: 'HVAC', value: 35 },
-    { name: 'Appliances', value: 20 },
-    { name: 'Electronics', value: 15 },
-    { name: 'Other', value: 5 },
-  ];
-};
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
-// Sample device data
-const sampleDevice = {
-  id: '1',
-  name: 'Main Panel',
-  type: 'panel',
-  status: 'active',
-  health: 'good',
-  lastUpdated: new Date().toISOString(),
-};
-
-function DeviceAnalytics({ deviceId, useSampleData = false }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [device, setDevice] = useState(null);
-  const [timeRange, setTimeRange] = useState('24h');
-  const [deviceData, setDeviceData] = useState([]);
-  const [loadDistribution, setLoadDistribution] = useState([]);
+  
+  // State to hold the summary data fetched from the backend
+  const [analyticsSummary, setAnalyticsSummary] = useState({
+       deviceName: null, deviceType: null, averagePower: null, peakPower: null,
+       minPower: null, totalConsumption: null, peakPowerTimestamp: null, peakHours: []
+  });
+
+  const [generatedInsights, setGeneratedInsights] = useState('');
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState(null);
+
+  const genAI = useMemo(() => {
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    if (!apiKey) { console.error("API Key not found."); setInsightsError("API Key is missing."); return null; }
+    try { return new GoogleGenerativeAI(apiKey); }
+    catch (error) { console.error("Error initializing GoogleGenerativeAI:", error); setInsightsError("Failed to initialize AI Client."); return null; }
+  }, []);
 
   useEffect(() => {
-    if (useSampleData) {
-      setDevice(sampleDevice);
-      fetchSampleData();
+    const loadAnalyticsSummary = async () => {
+      if (!selectedDevice || !selectedTimeRange) {
+         setLoading(false);
+         return;
+      } 
+      
+      setLoading(true); 
+      setError(null);
+      setInsightsError(null);
+      setGeneratedInsights('');
+
+      const today = new Date();
+      let startDate, endDate;
+      switch (selectedTimeRange) {
+        case '7d':
+          endDate = new Date(today);
+          startDate = new Date(new Date().setDate(today.getDate() - 6));
+          break;
+        case '30d':
+          endDate = new Date(today);
+          startDate = new Date(new Date().setDate(today.getDate() - 29));
+          break;
+        case '24h':
+        default:
+          endDate = new Date(today);
+          startDate = new Date(today); 
+          startDate.setHours(0, 0, 0, 0); // Start of today for hourly
+          endDate.setHours(23, 59, 59, 999); // End of today for hourly
+          break;
+      }
+      const startTimeStr = startDate?.toISOString();
+      const endTimeStr = endDate?.toISOString();
+
+      try {
+        // Fetch analytics summary (this already handles 'all' by passing undefined)
+        const summaryResponse = await API.get('/api/record/device-analytics-summary', {
+            params: { 
+                device_id: selectedDevice === 'all' ? undefined : selectedDevice,
+                start_time: startTimeStr, end_time: endTimeStr
+            }
+        });
+        setAnalyticsSummary(summaryResponse.data);
+      } catch (err) {
+        console.error(`Failed to load summary data for ${selectedDevice}:`, err);
+        setError(err.response?.data?.detail || "Could not load summary.");
+        setAnalyticsSummary({ deviceName: null, deviceType: null, averagePower: null, peakPower: null, minPower: null, totalConsumption: null, peakPowerTimestamp: null, peakHours: [] });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAnalyticsSummary();
+  }, [selectedDevice, selectedTimeRange]);
+
+  const handleGenerateInsights = async () => {
+    if (!genAI) { setInsightsError("AI Client not initialized."); return; }
+    if (!analyticsSummary || analyticsSummary.averagePower === null) { 
+        setInsightsError("Analytics data not available for analysis.");
+        return;
+    }
+    setInsightsLoading(true);
+    setGeneratedInsights('');
+    setInsightsError(null);
+
+    let prompt = '';
+    const isAllDevices = selectedDevice === 'all';
+
+    if (isAllDevices) {
+      prompt = `
+        Analyze the following aggregated power usage data for ALL devices over the selected period (${selectedTimeRange}):
+
+        Overall Key Metrics:
+        - Overall Average Power Consumption: ${formatPower(analyticsSummary.averagePower)}
+        - Overall Peak Power Consumption (highest single reading): ${formatPower(analyticsSummary.peakPower)}
+        - Overall Total Energy Consumption: ${formatPower(analyticsSummary.totalConsumption, { kwThreshold: Infinity, decimalPlaces: 0 })} Wh
+        - Peak Usage Hours (Hour of day, 0-23, for total consumption): ${analyticsSummary.peakHours?.join(', ') || 'N/A'}
+
+        Based *specifically* on these aggregated metrics:
+        1.  **Identify General Trends & Potential Concerns:** Are there any notable overall patterns, high consumption periods, or potential areas for general energy saving across the facility/system? Explain your reasoning based on the data provided (e.g., high average consumption, specific peak hours for overall load).
+        2.  **Provide General Actionable Recommendations:** Suggest broad, practical steps that could be taken to optimize overall energy usage, improve general efficiency, or investigate widespread patterns. These recommendations should be general due to the aggregated nature of the data.
+
+        Format the response clearly using Markdown, separating trends/concerns and recommendations. Be concise and focus on insights derived *directly* from the provided numbers.
+      `;
     } else {
-      fetchDevice();
-      fetchData();
-    }
-  }, [deviceId, timeRange, useSampleData]);
+      // Existing prompt for specific device
+      prompt = `
+        Analyze the following power usage data for the device named "${analyticsSummary.deviceName || selectedDeviceName}" (Type: ${analyticsSummary.deviceType || 'Unknown'}) over the selected period (${selectedTimeRange}):
 
-  const fetchDevice = async () => {
+        Key Metrics:
+        - Average Power Consumption: ${formatPower(analyticsSummary.averagePower)}
+        - Peak Power Consumption: ${formatPower(analyticsSummary.peakPower)} (occurred around ${analyticsSummary.peakPowerTimestamp ? new Date(analyticsSummary.peakPowerTimestamp).toLocaleString() : 'N/A'})
+        - Minimum Power Consumption (Standby): ${formatPower(analyticsSummary.minPower)}
+        - Total Energy Consumption: ${formatPower(analyticsSummary.totalConsumption, { kwThreshold: Infinity, decimalPlaces: 0 })} Wh
+        - Peak Usage Hours (Hour of day, 0-23, highest average for this device): ${analyticsSummary.peakHours?.join(', ') || 'N/A'}
+
+        Based *specifically* on these metrics and the device type:
+        1.  **Identify Potential Problems:** Are there signs of inefficiency, unusual peaks, high standby usage, unexpected usage times, or other potential issues? Explain your reasoning based on the data provided (e.g., comparing min power to average/peak, considering peak hours for the device type).
+        2.  **Provide Actionable Recommendations:** Suggest specific, practical steps the user could take to optimize energy usage, improve efficiency, investigate potential problems, or adjust usage patterns for this device. Tailor recommendations to the device type where possible.
+
+        Format the response clearly using Markdown, separating problems and recommendations. Be concise and focus on insights derived *directly* from the provided numbers.
+      `;
+    }
+    
     try {
-      const response = await axios.get(`/api/device/${deviceId}`);
-      setDevice(response.data);
-    } catch (err) {
-      console.error('Failed to load device:', err);
-      setDevice(sampleDevice);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      setGeneratedInsights(result.response.text());
+    } catch (error) {
+      console.error("Error generating insights:", error);
+      setInsightsError(`Failed to generate insights. Error: ${error.message || 'Unknown error'}`);
+    } finally {
+      setInsightsLoading(false);
     }
   };
 
-  const fetchSampleData = () => {
-    setLoading(true);
-    setDeviceData(generateDeviceData());
-    setLoadDistribution(generateLoadDistribution());
-    setLoading(false);
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // In a real application, these would be API calls
-      // const response = await axios.get(`/api/device/${deviceId}/analytics?range=${timeRange}`);
-      // setDeviceData(response.data.measurements);
-      // setLoadDistribution(response.data.loadDistribution);
-      
-      // For now, we'll use our sample data
-      setDeviceData(generateDeviceData());
-      setLoadDistribution(generateLoadDistribution());
-      
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load device analytics data');
-      setLoading(false);
-    }
-  };
-
-  const handleTimeRangeChange = (event, newValue) => {
-    if (newValue !== null) {
-      setTimeRange(newValue);
-    }
-  };
-
+  // Display loading indicator or message if loading or no specific device selected
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+        <Card>
+            <CardContent sx={{minHeight: 400, display:'flex', justifyContent:'center', alignItems:'center'}}>
+                <CircularProgress />
+            </CardContent>
+        </Card>
     );
   }
-
-  if (error) {
+  if (error && !analyticsSummary.averagePower) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {error}
-      </Alert>
+      <Card>
+        <CardContent sx={{minHeight: 400}}>
+            <Alert severity="error">{error}</Alert>
+        </CardContent>
+       </Card>
     );
   }
 
+  // Log state just before returning main JSX, including averagePower explicitly
+  console.log("--- DeviceAnalytics PRE-RETURN STATE ---", { 
+    loading, 
+    error, 
+    selectedDevice, 
+    analyticsSummary, 
+    avgPowerValue: analyticsSummary?.averagePower // Log the specific value
+  }); 
+  // Main component rendering using analyticsSummary
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6">
-          Device Analytics: {device?.name}
-        </Typography>
-        <ToggleButtonGroup
-          value={timeRange}
-          exclusive
-          onChange={handleTimeRangeChange}
-          size="small"
-        >
-          <ToggleButton value="24h">24h</ToggleButton>
-          <ToggleButton value="7d">7d</ToggleButton>
-          <ToggleButton value="30d">30d</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Temperature & Load
-            </Typography>
-            <Box height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={deviceData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" />
-                  <YAxis yAxisId="left" label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft' }} />
-                  <YAxis yAxisId="right" orientation="right" label={{ value: 'Load (%)', angle: 90, position: 'insideRight' }} />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="temperature"
-                    stroke="#ff7300"
-                    name="Temperature"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="load"
-                    stroke="#8884d8"
-                    name="Load"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+    <>
+      {/* Key Metrics Section */}
+        <Card sx={{mb: 3}}> 
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">Key Metrics for {analyticsSummary.deviceName || (selectedDevice === 'all' ? 'All Devices' : selectedDeviceName)}</Typography>
             </Box>
-          </Paper>
-        </Grid>
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+               <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Average Power</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.averagePower ?? 0)}</Typography></CardContent></Card></Grid>
+               <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Peak Power</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.peakPower ?? 0)}</Typography></CardContent></Card></Grid>
+               {analyticsSummary.minPower !== null && 
+                 <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Min Power (Standby)</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.minPower ?? 0)}</Typography></CardContent></Card></Grid>
+               }
+               <Grid item xs={12} sm={6} md={3}><Card variant="outlined"><CardContent><Typography variant="subtitle2" color="text.secondary" gutterBottom>Total Consumption</Typography><Typography variant="h5" sx={{ mb: 1 }}>{formatPower(analyticsSummary.totalConsumption ?? 0, { kwThreshold: Infinity, decimalPlaces: 0 })} Wh</Typography></CardContent></Card></Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Load Distribution
-            </Typography>
-            <Box height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={loadDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {loadDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </Box>
-          </Paper>
-        </Grid>
+      {/* Render PowerAnalysisChart component instead of inline chart JSX */}
+      <PowerAnalysisChart 
+          selectedDevice={selectedDevice} 
+          selectedTimeRange={selectedTimeRange} 
+      />
 
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Voltage & Current
-            </Typography>
-            <Box height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={deviceData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" />
-                  <YAxis yAxisId="left" label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }} />
-                  <YAxis yAxisId="right" orientation="right" label={{ value: 'Current (A)', angle: 90, position: 'insideRight' }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="voltage" fill="#82ca9d" name="Voltage" />
-                  <Bar yAxisId="right" dataKey="current" fill="#8884d8" name="Current" />
-                </BarChart>
-              </ResponsiveContainer>
+      {/* Insights Section */}
+        <Card sx={{mt: 3}}> 
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">Insights (AI Generated)</Typography>
+              <Button variant="contained" size="small" onClick={handleGenerateInsights} 
+                      disabled={insightsLoading || loading || analyticsSummary.averagePower === null || !genAI} 
+                      startIcon={insightsLoading ? <CircularProgress size={20} color="inherit"/> : null}>
+                {insightsLoading ? "Generating..." : "Generate Insights"}
+              </Button>
             </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+            <Box sx={{ minHeight: '100px', position: 'relative' }}>
+              {insightsLoading && ( <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 2 }}><CircularProgress /><Typography sx={{ ml: 1 }}>Generating AI insights...</Typography></Box> )}
+              {insightsError && !insightsLoading && ( <Alert severity="error" sx={{ my: 2 }}>{insightsError}</Alert> )}
+              {generatedInsights && !insightsLoading && !insightsError && (
+                <Box sx={{ mt: 2, '& h1, & h2, & h3, & h4, & h5, & h6': { my: 1 }, '& p': { my: 0.5 }, '& ul, & ol': { pl: 2.5 } }}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedInsights}</ReactMarkdown>
+                </Box>
+              )}
+              {!generatedInsights && !insightsLoading && !insightsError && (
+                  <Typography color="text.secondary" sx={{ textAlign: 'center', my: 2, fontStyle: 'italic' }}>
+                      {genAI ? 
+                         (analyticsSummary.averagePower === null ? 'Load analytics data first.' : 
+                         'Click "Generate Insights" to get AI analysis based on the current view.'
+                        ) : 
+                       'AI Client initialization failed. Check API Key.'}
+                  </Typography>
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+    </> 
   );
-}
+};
 
-export default DeviceAnalytics; 
+export default DeviceAnalytics;

@@ -6,23 +6,27 @@ from confluent_kafka import Consumer, KafkaError
 
 from services.records import update_record
 
-KAFKA_TOPIC = 'readings'
-KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9092')
+KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'readings')
+KAFKA_BOOTSTRAP_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVER', 'localhost:9093')
 # Kafka configuration
 conf = {
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVER,
-    'group.id': 'mygroup',
+    'group.id': 'mygroup-new',
     'auto.offset.reset': 'earliest'
 }
 
-consumer = Consumer(conf)
-consumer.subscribe(['readings'])
-user_action_counts = {}
+
+
 
 def consume_messages():
+    consumer = Consumer(conf)
+    consumer.subscribe(['readings'])
+    user_action_counts = {}
     try:
+        print(conf)
+        # print(consumer.poll())
         messages = consumer.consume(num_messages=10000, timeout=5)
-
+        print("Polling for new messages...", messages)
         for msg in messages:
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
@@ -37,15 +41,16 @@ def consume_messages():
                 if "timestamp" in data:
                     data["timestamp"] = datetime.fromisoformat(data["timestamp"])
                 update_record(data)
-            except Exception:
+                print(f"Consumed: {data}")
+            except Exception as e:
+                print(e)
                 continue
             print(data)
     except KeyboardInterrupt:
         pass
     except RuntimeError as e:
-            pass
+        pass
     finally:
-        # Close the consumer
         consumer.close()
 
 # Print final user action counts

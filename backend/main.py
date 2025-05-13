@@ -3,8 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from mqtt_client import start_mqtt_loop, logger as mqtt_logger
 
+from api.alerts import AlertsAPI
 from api.device import DeviceAPI
 from api.records import RecordsAPI
+from api.settings import SettingsAPI
 from core.database import db
 
 
@@ -29,7 +31,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Bridge Works API",
+    title="Elektron",
     description="API documentation for managing jobs, gigs, and volunteers.",
     version="1.0.0",
     docs_url="/docs",  # Swagger UI endpoint
@@ -52,18 +54,16 @@ app.add_middleware(
 # Include routers
 device_api = DeviceAPI()
 record_api = RecordsAPI()
-# gig_api = GigJobAPI()
-# volunteer_api = VolunteerJobAPI()
-# application_api = ApplicationAPI()
-# user_api = UserAPI()
+alerts_api = AlertsAPI()
+settings_api = SettingsAPI()
+
 
 # app.include_router(oauth_router)
 app.include_router(device_api.router, prefix="/api/device", tags=["Device"])
 app.include_router(record_api.router, prefix="/api/record", tags=["Record"])
-# app.include_router(gig_api.router, prefix="/api/gig", tags=["Gigs"])
-# app.include_router(volunteer_api.router, prefix="/api/volunteer", tags=["Volunteers"])
-# app.include_router(application_api.router, prefix="/api/application", tags=["Application"])
-# app.include_router(user_api.router, prefix="/api/user", tags=["User"])
+app.include_router(alerts_api.router, prefix="/api/alert", tags=["Alert"])
+app.include_router(settings_api.router, prefix="/api/settings", tags=["Settings"])
+
 
 @app.on_event("startup")
 def startup_event():
@@ -82,3 +82,4 @@ def shutdown_event():
 if __name__ == "__main__":
     # Note: In production environments, Gunicorn + Uvicorn workers are typically used
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) # Add reload=True for automatic reloading during development
+
