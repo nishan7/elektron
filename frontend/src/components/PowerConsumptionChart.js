@@ -153,9 +153,44 @@ function PowerConsumptionChart({ selectedDevice = 'all', selectedTimeRange }) {
         //   break;
         case '24h':
         default:
-          endDate = new Date(today);
-          startDate = new Date(today); // Data for today, hourly summary should handle this
-          break;
+          startTime.setHours(startTime.getHours() - 24);
+      }
+
+      console.log('=== Power Consumption Chart Debug ===');
+      console.log('Time Range:', timeRange);
+      console.log('Start Time:', startTime.toISOString());
+      console.log('End Time:', endTime.toISOString());
+      console.log('Selected Device:', currentDevice);
+
+      let readings = [];
+      if (currentDevice === 'all') {
+        // Fetch readings for all devices
+        const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
+        const activeDevices = devicesResponse.data.filter(device => device.is_active);
+        
+        console.log('Active Devices:', activeDevices);
+        
+        const powerReadingsPromises = activeDevices.map(device =>
+          axios.get(`${config.apiUrl}/api/record/data?device_id=${device._id}`, {
+            params: {
+              // start_time: startTime.toISOString(),
+              // end_time: endTime.toISOString()
+            }
+          })
+        );
+        
+        const powerReadingsResponses = await Promise.all(powerReadingsPromises);
+        readings = powerReadingsResponses.flatMap(response => response.data);
+      } else {
+        // Fetch readings for a specific device
+        console.log('Fetching readings for device:', currentDevice);
+        const response = await axios.get(`${config.apiUrl}/api/record/data?device_id=${currentDevice}`, {
+          params: {
+            // start_time: startTime.toISOString(),
+            // end_time: endTime.toISOString()
+          }
+        });
+        readings = response.data;
       }
 
       const startDateStr = startDate?.toISOString().split('T')[0];

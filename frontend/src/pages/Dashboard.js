@@ -74,15 +74,61 @@ function Dashboard() {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [settingsError, setSettingsError] = useState(null);
 
-  // useCallback for fetching devices, so it can be called independently
-  const fetchDevices = useCallback(async (isMountedRef) => {
-    setLoadingDevices(true);
-    setDeviceError(null);
-    try {
-      const deviceResponse = await API.get('/api/device');
-      if (isMountedRef.current) { 
-        console.log("[Dashboard] fetchDevices: About to setDevices. Data:", deviceResponse.data); // DEBUG
-        setDevices(deviceResponse.data || []);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        // Fetch devices
+        const devicesResponse = await axios.get(`${config.apiUrl}/api/device`);
+        setDevices(devicesResponse.data);
+        console.log('Devices:', devicesResponse.data);
+        const activeDevices = devicesResponse.data.filter(device => device.is_active);
+        
+        // Fetch power readings for each device
+        const endTime = new Date();
+        const startTime = new Date(endTime - 24 * 60 * 60 * 1000);
+        
+        const powerReadingsPromises = activeDevices.map(device =>
+          axios.get(`${config.apiUrl}/api/record/data/?device_id=${device._id}`, {
+            params: {
+              start_time: startTime.toISOString(),
+              end_time: endTime.toISOString(),
+            },
+          })
+        );
+        
+        const powerReadingsResponses = await Promise.all(powerReadingsPromises);
+        const allPowerReadings = powerReadingsResponses.flatMap(response => response.data);
+        
+        // Fetch alerts for each device
+        // const alertsPromises = activeDevices.map(device =>
+        //   axios.get(`${config.apiUrl}/api/alerts/${device._id}`, {
+        //     params: { resolved: false, limit: 5 }
+        //   })
+        // );
+        
+        // const alertsResponses = await Promise.all(alertsPromises);
+        // const allAlerts = alertsResponses.flatMap(response => response.data);
+        
+        // // Sort alerts by timestamp
+        // const sortedAlerts = allAlerts.sort((a, b) => 
+        //   new Date(b.timestamp) - new Date(a.timestamp)
+        // );
+        
+        setDashboardData({
+          totalDevices: devicesResponse.data.length,
+          activeDevices: activeDevices.length,
+          totalPower: allPowerReadings.reduce((sum, reading) => sum + reading.power, 0),
+          // recentAlerts: sortedAlerts.slice(0, 5),
+          powerReadings: allPowerReadings,
+        });
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setError('Failed to load dashboard data');
+        setLoading(false);
       }
     } catch (err) {
       console.error("[Dashboard] Failed to fetch device data:", err);

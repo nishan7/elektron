@@ -37,19 +37,18 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/elektron-frontend:latest
 
-
-#    - name: Deploy to EC2
-#      uses: appleboy/ssh-action@v0.1.10
-#      with:
-#        host: ${{ secrets.EC2_HOST }}
-#        username: ${{ secrets.EC2_USERNAME }}
-#        key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-#        script: |
-#          cd ~
-#          if [ ! -d "elektron" ]; then
-#            git clone https://github.com/nishan7/elektron.git
-#          fi
-#          cd Bridge-Work
-#          git pull origin main
-#          docker-compose -f docker-compose.prod.yml pull
-#          docker-compose -f docker-compose.prod.yml up backend frontend kafka -d --remove-orphans
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        script: |
+          cd ~
+          if [ ! -d "elektron" ]; then
+            git clone https://github.com/nishan7/elektron.git
+          fi
+          cd Bridge-Work
+          git pull origin main
+          docker-compose -f docker-compose.prod.yml pull
+          docker-compose -f docker-compose.prod.yml up backend frontend kafka -d --remove-orphans
