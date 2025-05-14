@@ -1,143 +1,80 @@
-# Electricity Monitor Application
-A full-stack application for monitoring electricity consumption, device health, and generating alerts.
+# Elektron: An Electricity Monitor Application
 
-## How to Run
+Elektron is a full-stack application designed to monitor electricity consumption and device health, complete with alerts and AI-generated insights. This system addresses the growing need for efficient energy management and proactive maintenance in various settings. Elektron provides users with valuable insights into their energy usage, helps identify device errors, and delivers real-time alerts to optimize energy consumption and prevent equipment failures.
 
-### Prerequisites
+## Features
 
-- Docker and Docker Compose installed on your system
-- Git (for cloning the repository)
+* **Real-Time Data Monitoring**: Track electricity consumption and device parameters as they happen.
+* **Device Health Assessment**: Monitor the health status of connected electrical devices.
+* **Alerting System**: Receive real-time notifications for abnormal energy consumption patterns or potential device malfunctions.
+* **AI-Generated Insights**: Obtain advice and insights through artificial intelligence to optimize consumption and manage devices proactively.
+* **Data Visualization**: A user-friendly interface to visualize energy consumption data and device health.
 
-### Quick Start
+## System Architecture
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/elektron.git
-cd elektron
-```
+Elektron utilizes a modern, distributed architecture:
 
-2. Create a `.env` file in the root directory:
-```env
-# Database
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=electricity_monitor
+* **Data Acquisition**: Electrical devices (like smart plugs) send data via MQTT.
+* **Data Processing**: Apache Kafka serves as the central message broker, receiving data from MQTT and making it available to consumers.
+* **Data Aggregation**: A consumer application processes raw data from Kafka, aggregating it into meaningful metrics (e.g., average power consumption over five-minute intervals).
+* **Data Storage**: MongoDB (a NoSQL database) stores aggregated energy consumption data, device health metrics, and alert history.
+* **Backend API**: A Python-based API using the FastAPI framework acts as an intermediary between the database and the frontend.
+* **Frontend UI**: A React-based web interface for users to interact with the system.
 
-# Backend
-BACKEND_PORT=8000
-REDIS_PORT=6379
+## Technologies Used
 
-# Frontend
-FRONTEND_PORT=3000
-REACT_APP_API_URL=http://localhost:8000
+* **Backend**: Python, FastAPI
+* **Frontend**: React, JavaScript
+* **Database**: MongoDB
+* **Messaging**: MQTT, Apache Kafka
+* **Containerization**: Docker, Docker Compose
+* **Email Notifications**: Mailjet
 
-# Monitoring
-GRAFANA_PORT=3001
-PROMETHEUS_PORT=9090
-```
+## Prerequisites
 
-3. Start the application:
-```bash
-docker-compose up -d
-```
+* Docker and Docker Compose installed on your system.
+* Git (for cloning the repository).
 
-4. Access the application:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- Grafana: http://localhost:3001
-- Prometheus: http://localhost:9090
+## Quick Start / How to Run
 
-5. Login credentials:
-- Username: admin
-- Password: admin123
+1.  **Clone the repository**:
+    ```bash
+    git clone [https://github.com/nishan7/elektron.git](https://github.com/nishan7/elektron.git)
+    cd elektron
+    ```
+    *(Note: The original README mentioned `yourusername`. This has been updated to reflect the actual repository information where possible.)*
 
-### Troubleshooting
+2.  **Create a `.env` file** in the root directory with the following content (adjust values as necessary):
+    ```env
+    # Database (MongoDB - as per docker-compose and project report)
+    MONGO_URI=mongodb://root:example@mongo:27017/elektron?authSource=admin
 
-If the database is not initializing:
-```bash
-docker-compose exec backend python -c "from app.core.init_db import init_db; init_db()"
-```
+    # Backend
+    BACKEND_PORT=8000
+    KAFKA_BOOTSTRAP_SERVER=kafka:9092 # For communication within Docker network
+    MAILJET_API_KEY=your_mailjet_api_key
+    MAILJET_SECRET_KEY=your_mailjet_secret_key
+    MAILJET_SENDER_EMAIL=your_sender_email@example.com
 
-To view logs:
-```bash
-docker-compose logs -f [service-name]
-```
+    # Frontend
+    FRONTEND_PORT=3000
+    REACT_APP_API_URL=http://localhost:8000
+    REACT_APP_GEMINI_API_KEY=your_gemini_api_key # For AI Insights feature
+    ```
+    *Note: The original `.env` example in the README listed `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`. However, the project report and `docker-compose.yml` files indicate the use of MongoDB. The `.env` example has been updated accordingly. Redis was mentioned but not found in the primary docker-compose files, so it's omitted here but can be added if used.*
 
-To restart services:
-```bash
-docker-compose restart [service-name]
-```
+3.  **Start the application**:
+    ```bash
+    docker-compose up -d
+    ```
+    (If using the production setup: `docker-compose -f docker-compose.prod.yml up -d`)
 
-To stop the application:
-```bash
-docker-compose down
-```
+4.  **Access the application**:
+    * Frontend: `http://localhost:3000`
+    * Backend API: `http://localhost:8000`
+    * Grafana (if used): `http://localhost:3001`
+    * Prometheus (if used): `http://localhost:9090`
 
-## Repository Information
-
-- **Repository URL**: [https://github.com/yourusername/ElectricityApp](https://github.com/yourusername/ElectricityApp)
-- **Branch Structure**:
-  - `main` - Production-ready code
-  - `develop` - Development branch
-  - `feature/*` - Feature branches
-  - `bugfix/*` - Bug fix branches
-  - `release/*` - Release branches
-
-## Development Workflow
-
-1. Create a new feature branch:
-```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/your-feature-name
-```
-
-2. Make your changes and commit:
-```bash
-git add .
-git commit -m "feat: description of your changes"
-```
-
-3. Push your changes:
-```bash
-git push origin feature/your-feature-name
-```
-
-## Project Structure
-
-```
-.
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── models/
-│   │   ├── services/
-│   │   └── utils/
-│   ├── tests/
-│   └── main.py
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   └── utils/
-│   └── public/
-├── docker/
-├── grafana/
-└── docs/
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+5.  **Login credentials**
+    * Username: `admin`
+    * Password: `admin123`
